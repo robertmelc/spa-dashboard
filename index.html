@@ -367,6 +367,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
 @media(max-width:480px){
   .stat-pill{display:none}
 }
+
+#tab-indikace, #tab-kalkulator { flex-direction: column; }
+#indikace-panel, #kalkulator-panel { display: flex; flex-direction: column; }
 </style>
 
 <style>
@@ -485,6 +488,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
   <button class="tab-btn active" onclick="switchTab('map')">🗺 Mapa</button>
   <button class="tab-btn" onclick="switchTab('compare')">⚖ Porovnání</button>
   <button class="tab-btn" onclick="switchTab('scrape')">🔌 Datové Zdroje</button>
+  <button class="tab-btn" onclick="switchTab('indikace')">🏥 Indikace</button>
+  <button class="tab-btn" onclick="switchTab('kalkulator')">🧮 Kalkulačka KLP</button>
 </div>
 
 <div class="main">
@@ -672,6 +677,118 @@ app.get('/api/prices/:hotelId', async (req, res) => {
 
 app.listen(4000, () => console.log('Proxy běží na :4000'));
         </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- INDIKACE TAB -->
+  <div id="tab-indikace" class="tab-content">
+    <div id="indikace-panel" style="padding:20px;overflow-y:auto;flex:1">
+      <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px">Vyhledávání podle indikace</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:18px">Vyberte diagnózu nebo oblast léčby a zobrazíme vhodné hotely seřazené podle relevance</div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px" id="indik-chips">
+        <div class="filter-chip active" onclick="setIndikace('',this)">Vše</div>
+        <div class="filter-chip" onclick="setIndikace('Pohybový aparát',this)">🦴 Pohybový aparát</div>
+        <div class="filter-chip" onclick="setIndikace('Kardiovaskulární',this)">❤️ Srdce a cévy</div>
+        <div class="filter-chip" onclick="setIndikace('Neurologická',this)">🧠 Neurologie</div>
+        <div class="filter-chip" onclick="setIndikace('Respirační',this)">🫁 Dýchací cesty</div>
+        <div class="filter-chip" onclick="setIndikace('Trávicí soustava',this)">🫀 Trávicí soustava</div>
+        <div class="filter-chip" onclick="setIndikace('Gynekologická',this)">👩 Gynekologie</div>
+        <div class="filter-chip" onclick="setIndikace('Revmatologie',this)">🦿 Revmatologie</div>
+        <div class="filter-chip" onclick="setIndikace('Onkologie',this)">🔬 Onkologie</div>
+        <div class="filter-chip" onclick="setIndikace('Kožní onemocnění',this)">🧴 Kožní onemocnění</div>
+        <div class="filter-chip" onclick="setIndikace('Metabolismus',this)">⚗️ Metabolismus / Diabetes</div>
+        <div class="filter-chip" onclick="setIndikace('Pooperační',this)">🏥 Pooperační péče</div>
+        <div class="filter-chip" onclick="setIndikace('Relaxace',this)">🧘 Wellness / Relaxace</div>
+      </div>
+
+      <div id="indikace-result"></div>
+    </div>
+  </div>
+
+  <!-- KALKULAČKA TAB -->
+  <div id="tab-kalkulator" class="tab-content">
+    <div id="kalkulator-panel" style="padding:20px;overflow-y:auto;flex:1">
+      <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px">Kalkulačka nákladů KLP</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:20px">Spočítejte celkové náklady na pobyt v lázních hrazený zdravotní pojišťovnou</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <!-- Levý sloupec — vstupní parametry -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)">
+          <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:14px">Parametry pobytu</div>
+
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Zařízení</label>
+            <select id="klp-hotel" onchange="calcKLP()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);padding:8px 11px;font-family:'Geist',sans-serif;font-size:11px;color:var(--text);outline:none">
+              <option value="">— vyberte hotel —</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Délka pobytu</label>
+            <div style="display:flex;gap:8px">
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+                <input type="radio" name="klp-days" value="21" onchange="calcKLP()" checked> 21 dní
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+                <input type="radio" name="klp-days" value="28" onchange="calcKLP()"> 28 dní
+              </label>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Typ pokoje</label>
+            <select id="klp-room" onchange="calcKLP()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);padding:8px 11px;font-family:'Geist',sans-serif;font-size:11px;color:var(--text);outline:none">
+              <option value="standard">2-lůžkový standard (ZP hradí)</option>
+              <option value="single">1-lůžkový pokoj (příplatek)</option>
+              <option value="superior">Nadstandard / Superior</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Strava</label>
+            <select id="klp-food" onchange="calcKLP()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);padding:8px 11px;font-family:'Geist',sans-serif;font-size:11px;color:var(--text);outline:none">
+              <option value="standard">Standardní (ZP hradí)</option>
+              <option value="vyberna">Výběrová strava (+příplatek)</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Sezona</label>
+            <select id="klp-season" onchange="calcKLP()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);padding:8px 11px;font-family:'Geist',sans-serif;font-size:11px;color:var(--text);outline:none">
+              <option value="main">Hlavní (březen–říjen)</option>
+              <option value="off">Vedlejší (listopad–únor)</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+              <input type="checkbox" id="klp-rezervace" onchange="calcKLP()">
+              Rezervace termínu (placená)
+            </label>
+          </div>
+
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+              <input type="checkbox" id="klp-parking" onchange="calcKLP()">
+              Parkování
+            </label>
+          </div>
+        </div>
+
+        <!-- Pravý sloupec — výsledek -->
+        <div id="klp-result" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)">
+          <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:14px">Výsledek kalkulace</div>
+          <div style="color:var(--text3);font-size:11px">Vyberte hotel a parametry vlevo</div>
+        </div>
+      </div>
+
+      <!-- Srovnání více hotelů v kalkulačce -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)">
+        <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">Nejlevnější KLP hotely (21 dní, 1-lůžkový, hlavní sezona)</div>
+        <div id="klp-ranking"></div>
       </div>
     </div>
   </div>
@@ -13768,6 +13885,8 @@ function switchTab(t) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + t).classList.add('active');
   if (t === 'map') setTimeout(() => map.invalidateSize(), 50);
+  if (t === 'indikace') setIndikace('', document.querySelector('#indik-chips .filter-chip'));
+  if (t === 'kalkulator') initKalkulator();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
@@ -13804,6 +13923,231 @@ function toggleTheme() {
     }, 50);
   }
 })();
+
+
+// ─── Indikace ─────────────────────────────────────────────────────────────────
+function setIndikace(indikace, el) {
+  document.querySelectorAll('#indik-chips .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const result = document.getElementById('indikace-result');
+  const filtered = !indikace
+    ? HOTELS
+    : HOTELS.filter(h =>
+        (h.specializations||[]).some(s => s.toLowerCase().includes(indikace.toLowerCase())) ||
+        (h.procedures||[]).some(p => p.name.toLowerCase().includes(indikace.toLowerCase()))
+      );
+
+  if(filtered.length === 0) {
+    result.innerHTML = '<div style="color:var(--text3);text-align:center;padding:30px">Žádné hotely pro tuto indikaci</div>';
+    return;
+  }
+
+  // Seřadíme: KLP hotely první, pak podle hodnocení
+  const sorted = [...filtered].sort((a,b) => {
+    if(a.klp && !b.klp) return -1;
+    if(!a.klp && b.klp) return 1;
+    return (b.rating||4) - (a.rating||4);
+  });
+
+  // Skupiny podle sítě
+  const byNetwork = {};
+  sorted.forEach(h => {
+    if(!byNetwork[h.network]) byNetwork[h.network] = [];
+    byNetwork[h.network].push(h);
+  });
+
+  result.innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
+      Nalezeno <b style="color:var(--text)">${filtered.length}</b> hotelů
+      ${indikace ? 'pro indikaci <b style="color:var(--accent)">' + indikace + '</b>' : ''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+      ${sorted.slice(0,30).map(h => `
+        <div onclick="switchTab('map');setTimeout(()=>openDetail(${h.id}),100)"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;cursor:pointer;transition:var(--trans);box-shadow:var(--shadow)"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow2)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+            <div style="font-family:'Instrument Serif',serif;font-size:14px;color:var(--text);line-height:1.2">${h.name.replace(/★+/g,'').trim()}</div>
+            ${h.klp ? '<span style="background:var(--green);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-left:6px">KLP</span>' : ''}
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">${'★'.repeat(h.stars)} · ${h.city} · ${h.network}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+            ${(h.specializations||[]).map(s => `<span style="font-size:9px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.15);border-radius:20px;padding:1px 7px;color:var(--accent)">${s}</span>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2)">
+            <span>${h.procedures.length} procedur</span>
+            <span style="font-family:'Instrument Serif',serif;font-size:13px;color:var(--green)">od ${(h.priceFrom||0).toLocaleString()} Kč</span>
+          </div>
+          ${indikace ? `<div style="margin-top:6px;font-size:10px;color:var(--text3)">Relevantní procedury: ${(h.procedures||[]).filter(p=>p.name.toLowerCase().includes(indikace.toLowerCase())||indikace==='').map(p=>`<b>${p.name}</b> ${p.price} Kč`).slice(0,2).join(', ')}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ─── KLP Kalkulačka ───────────────────────────────────────────────────────────
+function calcKLP() {
+  const hotelId = document.getElementById('klp-hotel').value;
+  const days = parseInt(document.querySelector('input[name="klp-days"]:checked').value);
+  const room = document.getElementById('klp-room').value;
+  const food = document.getElementById('klp-food').value;
+  const season = document.getElementById('klp-season').value;
+  const rezervace = document.getElementById('klp-rezervace').checked;
+  const parking = document.getElementById('klp-parking').checked;
+
+  const result = document.getElementById('klp-result');
+
+  if(!hotelId) {
+    result.innerHTML = '<div style="color:var(--text3);font-size:11px">Vyberte hotel a parametry vlevo</div>';
+    renderKLPRanking(days, room, season);
+    return;
+  }
+
+  const hotel = HOTELS.find(h => h.id == hotelId);
+  if(!hotel) return;
+
+  if(!hotel.klp) {
+    result.innerHTML = `<div style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:8px;padding:12px;color:var(--red)">
+      <b>KLP není k dispozici</b><br>
+      <span style="font-size:11px">Tento hotel neposkytuje komplexní lázeňskou péči hrazenou ZP.</span>
+    </div>`;
+    return;
+  }
+
+  const doplatky = hotel.klpDoplatky || [];
+
+  // Výpočet doplatku za pokoj
+  let roomSurcharge = 0;
+  if(room === 'single') {
+    const d = doplatky.find(d => d.typ.includes('1-lůžkový') && (season === 'main' ? !d.typ.includes('vedlejší') : d.typ.includes('vedlejší') || !d.typ.includes('sezona')));
+    roomSurcharge = d ? (d.cena > 0 ? d.cena : 0) : 0;
+    if(roomSurcharge === 0) {
+      const any = doplatky.find(d => d.typ.includes('1-lůžkový') && d.cena > 0);
+      roomSurcharge = any ? any.cena : 0;
+    }
+  } else if(room === 'superior') {
+    const d = doplatky.find(d => (d.typ.includes('nadstand') || d.typ.includes('Superior') || d.typ.includes('A 2/2')) && d.cena > 0);
+    roomSurcharge = d ? d.cena : 0;
+  }
+
+  // Strava
+  let foodSurcharge = 0;
+  if(food === 'vyberna') {
+    const d = doplatky.find(d => d.typ.toLowerCase().includes('strava') || d.typ.toLowerCase().includes('penze'));
+    foodSurcharge = d ? d.cena : 300;
+  }
+
+  // Místní poplatek
+  const localTax = 50; // Kč/den (standardní)
+
+  // Rezervace
+  const rezervaceFee = rezervace ? (doplatky.find(d=>d.typ.includes('ezerva'))?.cena || 0) : 0;
+
+  // Parkování
+  const parkingFee = parking ? (doplatky.find(d=>d.typ.toLowerCase().includes('parkov'))?.cena || 0) : 0;
+
+  const dailySurcharge = roomSurcharge + foodSurcharge + localTax;
+  const totalSurcharge = dailySurcharge * days + rezervaceFee + (parkingFee * days);
+  const totalParking = parkingFee * days;
+
+  const rows = [
+    { label: 'Léčba, ubytování standard, strava', daily: 0, total: 0, payer: 'ZP', free: true },
+    ...(roomSurcharge > 0 ? [{ label: 'Příplatek za pokoj (' + (room==='single'?'1-lůžkový':'nadstandard') + ')', daily: roomSurcharge, total: roomSurcharge*days, payer: 'Klient' }] : []),
+    ...(foodSurcharge > 0 ? [{ label: 'Výběrová strava', daily: foodSurcharge, total: foodSurcharge*days, payer: 'Klient' }] : []),
+    { label: 'Místní (lázeňský) poplatek', daily: localTax, total: localTax*days, payer: 'Klient' },
+    ...(rezervaceFee > 0 ? [{ label: 'Rezervace termínu (jednorázově)', daily: null, total: rezervaceFee, payer: 'Klient' }] : []),
+    ...(parkingFee > 0 ? [{ label: 'Parkování', daily: parkingFee, total: totalParking, payer: 'Klient' }] : []),
+  ];
+
+  result.innerHTML = `
+    <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">Kalkulace pro ${hotel.name.replace(/★+/g,'').trim()} · ${days} dní</div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px">
+      <tr style="border-bottom:2px solid var(--border2)">
+        <th style="text-align:left;padding:5px 4px;color:var(--text3);font-size:9px;letter-spacing:.08em">Položka</th>
+        <th style="text-align:right;padding:5px 4px;color:var(--text3);font-size:9px">Kč/den</th>
+        <th style="text-align:right;padding:5px 4px;color:var(--text3);font-size:9px">Celkem</th>
+        <th style="text-align:center;padding:5px 4px;color:var(--text3);font-size:9px">Hradí</th>
+      </tr>
+      ${rows.map(r => `
+        <tr style="border-bottom:1px solid var(--border2)">
+          <td style="padding:5px 4px;color:var(--text2)">${r.label}</td>
+          <td style="padding:5px 4px;text-align:right;color:var(--text)">${r.daily === null ? '—' : r.daily === 0 ? '—' : r.daily.toLocaleString()}</td>
+          <td style="padding:5px 4px;text-align:right;font-weight:600;color:${r.free?'var(--green)':'var(--text)'}">${r.free ? 'ZDARMA' : r.total.toLocaleString() + ' Kč'}</td>
+          <td style="padding:5px 4px;text-align:center"><span style="font-size:9px;padding:1px 7px;border-radius:3px;background:${r.free?'rgba(22,163,74,0.1)':'rgba(37,99,235,0.1)'};color:${r.free?'var(--green)':'var(--accent)'}">${r.payer}</span></td>
+        </tr>
+      `).join('')}
+    </table>
+
+    <div style="background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(14,165,233,0.06));border:1px solid rgba(37,99,235,0.2);border-radius:var(--r2);padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--text2)">Celkový doplatek klienta</span>
+        <span style="font-family:'Instrument Serif',serif;font-size:28px;color:var(--accent);letter-spacing:-0.02em">${totalSurcharge.toLocaleString()} Kč</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3)">${dailySurcharge} Kč/den × ${days} dní${rezervaceFee>0?' + '+rezervaceFee+' Kč rezervace':''}${totalParking>0?' + '+totalParking+' Kč parkování':''}</div>
+      ${hotel.klpInfo ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(37,99,235,0.15);font-size:10px;color:var(--text3)">${hotel.klpInfo}</div>` : ''}
+    </div>
+
+    <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.5">
+      ⚠ Kalkulace je orientační. Přesné ceny ověřte přímo v přijímací kanceláři hotelu.
+      Místní poplatek 50 Kč/den platí od 1.1.2024 i pro KLP klienty.
+    </div>
+  `;
+
+  renderKLPRanking(days, room, season);
+}
+
+function renderKLPRanking(days, room, season) {
+  const klpHotels = HOTELS.filter(h => h.klp === true);
+
+  const withCost = klpHotels.map(h => {
+    const doplatky = h.klpDoplatky || [];
+    let roomS = 0;
+    if(room === 'single') {
+      const d = doplatky.find(d => d.typ.includes('1-lůžkový') && d.cena > 0);
+      roomS = d ? d.cena : 400;
+    }
+    const localTax = 50;
+    const daily = roomS + localTax;
+    const total = daily * days;
+    return { hotel: h, daily, total };
+  }).sort((a,b) => a.total - b.total);
+
+  const ranking = document.getElementById('klp-ranking');
+  if(!ranking) return;
+
+  ranking.innerHTML = withCost.slice(0,15).map((item, idx) => `
+    <div onclick="document.getElementById('klp-hotel').value=${item.hotel.id};calcKLP()"
+      style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r3);cursor:pointer;transition:var(--trans);margin-bottom:4px;background:var(--surface2);border:1px solid var(--border)"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-family:'Instrument Serif',serif;font-size:18px;color:var(--text3);width:24px;flex-shrink:0">${idx+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.hotel.name.replace(/★+/g,'').trim()}</div>
+        <div style="font-size:10px;color:var(--text3)">${item.hotel.city} · ${item.hotel.network}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Instrument Serif',serif;font-size:16px;color:var(--accent)">${item.total.toLocaleString()} Kč</div>
+        <div style="font-size:9px;color:var(--text3)">${item.daily} Kč/den</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Init kalkulačky — naplníme select
+function initKalkulator() {
+  const sel = document.getElementById('klp-hotel');
+  if(!sel) return;
+  const klpHotels = HOTELS.filter(h => h.klp === true)
+    .sort((a,b) => a.network.localeCompare(b.network) || a.name.localeCompare(b.name));
+  klpHotels.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h.id;
+    opt.textContent = h.name.replace(/★+/g,'').trim() + ' — ' + h.city;
+    sel.appendChild(opt);
+  });
+  renderKLPRanking(21, 'single', 'main');
+}
+
 </script>
-</body>
-</html>
