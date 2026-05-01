@@ -370,6 +370,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
 
 #tab-indikace, #tab-kalkulator { flex-direction: column; }
 #indikace-panel, #kalkulator-panel { display: flex; flex-direction: column; }
+/* Stars legend */
+.stars-unverified { opacity: 0.5; }
 </style>
 
 <style>
@@ -491,6 +493,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
   <button class="tab-btn" onclick="switchTab('dostupnost')">📍 Dostupnost</button>
   <button class="tab-btn" onclick="switchTab('indikace')">🏥 Indikace</button>
   <button class="tab-btn" onclick="switchTab('kalkulator')">🧮 Kalkulačka KLP</button>
+  <button class="tab-btn" onclick="switchTab('sezony')">📈 Sezónní ceny</button>
 </div>
 
 <div class="main">
@@ -692,6 +695,43 @@ app.listen(4000, () => console.log('Proxy běží na :4000'));
     </div>
   </div>
 
+
+  <!-- SEZÓNA TAB -->
+  <div id="tab-sezony" class="tab-content">
+    <div style="padding:20px;overflow-y:auto;flex:1">
+      <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px">Sezónní přehled cen</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:18px">Jak se mění ceny ubytování a KLP doplatků v průběhu roku</div>
+
+      <!-- Výběr hotelu -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <select id="season-hotel" onchange="renderSeasonChart()"
+          style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:9px 12px;font-family:'Geist',sans-serif;font-size:11px;color:var(--text);outline:none">
+          <option value="">— vyberte hotel —</option>
+        </select>
+        <div style="display:flex;gap:4px">
+          <button onclick="setSeasView('ubytovani')" id="btn-ubyt" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r3);font-family:'Geist',sans-serif;font-size:11px;font-weight:600;cursor:pointer">Ubytování</button>
+          <button onclick="setSeasView('klp')" id="btn-klp" style="padding:7px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:var(--r3);font-family:'Geist',sans-serif;font-size:11px;cursor:pointer">KLP doplatky</button>
+          <button onclick="setSeasView('procedury')" id="btn-proc" style="padding:7px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:var(--r3);font-family:'Geist',sans-serif;font-size:11px;cursor:pointer">Procedury</button>
+        </div>
+      </div>
+
+      <!-- Graf -->
+      <div id="season-chart-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);margin-bottom:20px">
+        <canvas id="season-canvas" width="900" height="300" style="width:100%;height:auto"></canvas>
+      </div>
+
+      <!-- Tabulka měsíců -->
+      <div id="season-table-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);margin-bottom:20px">
+        <div id="season-table"></div>
+      </div>
+
+      <!-- Srovnání sítí -->
+      <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        Průměrné ceny podle sítě <span style="flex:1;height:1px;background:var(--border2)"></span>
+      </div>
+      <div id="network-prices" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+    </div>
+  </div>
 
   <!-- DOSTUPNOST TAB -->
   <div id="tab-dostupnost" class="tab-content">
@@ -916,7 +956,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1002,
@@ -995,7 +1036,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1003,
@@ -1067,7 +1109,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1004,
@@ -1139,7 +1182,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1005,
@@ -1211,7 +1255,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1006,
@@ -1277,7 +1322,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1007,
@@ -1343,7 +1389,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1101,
@@ -1427,7 +1474,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1102,
@@ -1493,7 +1541,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1103,
@@ -1588,7 +1637,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1104,
@@ -1661,7 +1711,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1105,
@@ -1710,7 +1761,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1106,
@@ -1766,7 +1818,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1107,
@@ -1839,7 +1892,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1108,
@@ -1912,7 +1966,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1201,
@@ -1992,7 +2047,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1202,
@@ -2065,7 +2121,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1301,
@@ -2150,7 +2207,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1302,
@@ -2217,7 +2275,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1401,
@@ -2307,7 +2366,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1501,
@@ -2369,7 +2429,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1601,
@@ -2442,7 +2503,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1701,
@@ -2516,7 +2578,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1801,
@@ -2600,7 +2663,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 1901,
@@ -2667,7 +2731,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 2001,
@@ -2734,7 +2799,8 @@ const HOTELS = [
     "ico": "",
     "address": "",
     "phone": "",
-    "note": ""
+    "note": "",
+    "starsVerified": true
   },
   {
     "id": 100,
@@ -2793,7 +2859,8 @@ const HOTELS = [
       }
     ],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 101,
@@ -2852,7 +2919,8 @@ const HOTELS = [
       }
     ],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 102,
@@ -2911,7 +2979,8 @@ const HOTELS = [
       }
     ],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 103,
@@ -2964,7 +3033,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 104,
@@ -3023,7 +3093,8 @@ const HOTELS = [
       }
     ],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 105,
@@ -3082,7 +3153,8 @@ const HOTELS = [
       }
     ],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 107,
@@ -3135,7 +3207,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 109,
@@ -3188,7 +3261,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 114,
@@ -3241,7 +3315,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 115,
@@ -3294,7 +3369,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 116,
@@ -3347,7 +3423,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 117,
@@ -3400,7 +3477,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 118,
@@ -3453,7 +3531,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 119,
@@ -3506,7 +3585,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 121,
@@ -3559,7 +3639,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 122,
@@ -3612,7 +3693,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 123,
@@ -3665,7 +3747,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 124,
@@ -3718,7 +3801,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 125,
@@ -3771,7 +3855,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 126,
@@ -3824,7 +3909,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 127,
@@ -3877,7 +3963,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 128,
@@ -3930,7 +4017,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 129,
@@ -3983,7 +4071,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 130,
@@ -4036,7 +4125,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 131,
@@ -4089,7 +4179,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 132,
@@ -4142,7 +4233,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 133,
@@ -4195,7 +4287,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 134,
@@ -4248,7 +4341,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 135,
@@ -4301,7 +4395,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 141,
@@ -4354,7 +4449,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 142,
@@ -4407,7 +4503,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 147,
@@ -4460,7 +4557,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 148,
@@ -4513,7 +4611,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 149,
@@ -4566,7 +4665,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 150,
@@ -4619,7 +4719,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 151,
@@ -4672,7 +4773,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 152,
@@ -4725,7 +4827,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 153,
@@ -4778,7 +4881,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 154,
@@ -4831,7 +4935,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 155,
@@ -4884,7 +4989,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 156,
@@ -4937,7 +5043,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 157,
@@ -4990,7 +5097,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 158,
@@ -5043,7 +5151,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 159,
@@ -5096,7 +5205,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 160,
@@ -5149,7 +5259,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 161,
@@ -5202,7 +5313,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 162,
@@ -5255,7 +5367,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 163,
@@ -5308,7 +5421,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 164,
@@ -5361,7 +5475,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 165,
@@ -5414,7 +5529,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 166,
@@ -5467,7 +5583,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 167,
@@ -5520,7 +5637,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 168,
@@ -5573,7 +5691,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 169,
@@ -5626,7 +5745,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 170,
@@ -5679,7 +5799,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 171,
@@ -5732,7 +5853,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 172,
@@ -5785,7 +5907,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 173,
@@ -5838,7 +5961,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 174,
@@ -5891,7 +6015,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 175,
@@ -5944,7 +6069,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 176,
@@ -5997,7 +6123,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 177,
@@ -6050,7 +6177,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 178,
@@ -6103,7 +6231,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 180,
@@ -6156,7 +6285,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 181,
@@ -6209,7 +6339,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 182,
@@ -6262,7 +6393,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 183,
@@ -6315,7 +6447,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 184,
@@ -6368,7 +6501,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 185,
@@ -6421,7 +6555,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 186,
@@ -6474,7 +6609,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 187,
@@ -6527,7 +6663,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 188,
@@ -6580,7 +6717,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 189,
@@ -6633,7 +6771,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 190,
@@ -6686,7 +6825,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 192,
@@ -6739,7 +6879,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 193,
@@ -6792,7 +6933,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 194,
@@ -6845,7 +6987,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 195,
@@ -6898,7 +7041,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 196,
@@ -6951,7 +7095,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 197,
@@ -7004,7 +7149,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 198,
@@ -7057,7 +7203,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 199,
@@ -7110,7 +7257,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 200,
@@ -7163,7 +7311,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 201,
@@ -7216,7 +7365,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 202,
@@ -7269,7 +7419,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 203,
@@ -7322,7 +7473,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 204,
@@ -7375,7 +7527,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 210,
@@ -7428,7 +7581,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 211,
@@ -7481,7 +7635,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 212,
@@ -7534,7 +7689,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 213,
@@ -7587,7 +7743,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 214,
@@ -7640,7 +7797,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 215,
@@ -7693,7 +7851,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 217,
@@ -7746,7 +7905,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 218,
@@ -7799,7 +7959,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 219,
@@ -7852,7 +8013,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 223,
@@ -7905,7 +8067,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 226,
@@ -7958,7 +8121,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 227,
@@ -8011,7 +8175,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 228,
@@ -8064,7 +8229,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 229,
@@ -8117,7 +8283,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 230,
@@ -8170,7 +8337,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 232,
@@ -8223,7 +8391,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 234,
@@ -8276,7 +8445,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 235,
@@ -8329,7 +8499,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 236,
@@ -8382,7 +8553,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 237,
@@ -8435,7 +8607,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 238,
@@ -8488,7 +8661,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 239,
@@ -8541,7 +8715,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 240,
@@ -8594,7 +8769,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 241,
@@ -8647,7 +8823,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 242,
@@ -8700,7 +8877,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 243,
@@ -8753,7 +8931,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 245,
@@ -8806,7 +8985,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 248,
@@ -8859,7 +9039,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 249,
@@ -8912,7 +9093,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 251,
@@ -8965,7 +9147,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 257,
@@ -9018,7 +9201,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 259,
@@ -9071,7 +9255,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 261,
@@ -9124,7 +9309,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 262,
@@ -9177,7 +9363,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 263,
@@ -9230,7 +9417,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 265,
@@ -9283,7 +9471,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 267,
@@ -9336,7 +9525,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 268,
@@ -9389,7 +9579,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 276,
@@ -9442,7 +9633,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 278,
@@ -9495,7 +9687,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 279,
@@ -9548,7 +9741,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 280,
@@ -9601,7 +9795,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 281,
@@ -9654,7 +9849,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 283,
@@ -9707,7 +9903,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 291,
@@ -9760,7 +9957,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 294,
@@ -9813,7 +10011,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 295,
@@ -9866,7 +10065,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 296,
@@ -9919,7 +10119,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 298,
@@ -9972,7 +10173,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 299,
@@ -10025,7 +10227,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 301,
@@ -10078,7 +10281,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 302,
@@ -10131,7 +10335,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 303,
@@ -10184,7 +10389,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 304,
@@ -10237,7 +10443,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 305,
@@ -10290,7 +10497,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 306,
@@ -10343,7 +10551,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 307,
@@ -10396,7 +10605,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 308,
@@ -10449,7 +10659,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 309,
@@ -10502,7 +10713,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 323,
@@ -10555,7 +10767,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 326,
@@ -10608,7 +10821,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 327,
@@ -10661,7 +10875,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 328,
@@ -10714,7 +10929,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 329,
@@ -10767,7 +10983,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 330,
@@ -10820,7 +11037,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 331,
@@ -10873,7 +11091,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 332,
@@ -10926,7 +11145,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 337,
@@ -10979,7 +11199,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 344,
@@ -11032,7 +11253,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 345,
@@ -11085,7 +11307,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 346,
@@ -11138,7 +11361,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 347,
@@ -11191,7 +11415,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 348,
@@ -11244,7 +11469,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 349,
@@ -11297,7 +11523,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 350,
@@ -11350,7 +11577,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 351,
@@ -11403,7 +11631,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 352,
@@ -11456,7 +11685,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 353,
@@ -11509,7 +11739,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 354,
@@ -11562,7 +11793,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 355,
@@ -11615,7 +11847,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 356,
@@ -11668,7 +11901,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 357,
@@ -11721,7 +11955,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 358,
@@ -11774,7 +12009,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 359,
@@ -11827,7 +12063,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 360,
@@ -11880,7 +12117,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 365,
@@ -11933,7 +12171,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 366,
@@ -11986,7 +12225,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 367,
@@ -12039,7 +12279,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 368,
@@ -12092,7 +12333,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 369,
@@ -12145,7 +12387,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 370,
@@ -12198,7 +12441,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 371,
@@ -12251,7 +12495,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 372,
@@ -12304,7 +12549,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 373,
@@ -12357,7 +12603,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 374,
@@ -12410,7 +12657,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 375,
@@ -12463,7 +12711,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 376,
@@ -12516,7 +12765,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 377,
@@ -12569,7 +12819,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 378,
@@ -12622,7 +12873,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 379,
@@ -12675,7 +12927,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 380,
@@ -12728,7 +12981,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 382,
@@ -12781,7 +13035,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 383,
@@ -12834,7 +13089,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 384,
@@ -12887,7 +13143,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 385,
@@ -12940,7 +13197,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 386,
@@ -12993,7 +13251,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 388,
@@ -13046,7 +13305,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 389,
@@ -13099,7 +13359,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 390,
@@ -13152,7 +13413,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 391,
@@ -13205,7 +13467,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 392,
@@ -13258,7 +13521,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 394,
@@ -13311,7 +13575,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 395,
@@ -13364,7 +13629,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 396,
@@ -13417,7 +13683,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 397,
@@ -13470,7 +13737,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   },
   {
     "id": 398,
@@ -13523,7 +13791,8 @@ const HOTELS = [
     "plp": null,
     "klpDoplatky": [],
     "klpInfo": "ZP hradí léčbu, ubytování standard, celodenní stravu. Délka 21/28 dnů.",
-    "source": "nrpzs-csv"
+    "source": "nrpzs-csv",
+    "starsVerified": false
   }
 ];
 
@@ -13679,7 +13948,7 @@ function renderHotelList(data) {
       <div class="hotel-card-header">
         <div>
           <div class="hotel-name">${h.name}${h.unesco ? '<span class="badge-unesco">UNESCO</span>' : ''}</div>
-          <div class="hotel-city">${'★'.repeat(h.stars)} · ${h.city}</div>
+          <div class="hotel-city">${h.starsVerified ? '★'.repeat(h.stars) : '☆'.repeat(h.stars)} · ${h.city}${!h.starsVerified ? ' <span style="font-size:8px;color:var(--text3)">(neověř.)</span>' : ''}</div>
         </div>
         ${h.network !== 'independent' ? `<div class="hotel-network">${h.network}</div>` : ''}
       </div>
@@ -13735,7 +14004,7 @@ function openDetail(id) {
   markers[id]?.openPopup();
 
   document.getElementById('dp-name').textContent = h.name;
-  document.getElementById('dp-city').innerHTML = `${'★'.repeat(h.stars)} &nbsp;·&nbsp; ${h.city} &nbsp;·&nbsp; ${h.network !== 'independent' ? h.network : 'Nezávislý'}${h.unesco ? ' &nbsp;<span class="badge-unesco">UNESCO</span>' : ''}`;
+  document.getElementById('dp-city').innerHTML = `${h.starsVerified ? '★'.repeat(h.stars) : '☆'.repeat(h.stars)} &nbsp;·&nbsp; ${h.city} ${!h.starsVerified ? '<span style="font-size:9px;color:var(--text3);font-style:italic">(kategorie neověřena — zdroj: NRPZS)</span>' : '<span style="font-size:9px;color:var(--gold)">✓ Hotelstars</span>'} &nbsp;·&nbsp; ${h.network !== 'independent' ? h.network : 'Nezávislý'}${h.unesco ? ' &nbsp;<span class="badge-unesco">UNESCO</span>' : ''}`;
 
   const procs = h.procedures.map(p => `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:0"><b style="display:block;font-size:11px;margin-bottom:4px">${p.name}</b><span style="font-size:15px;color:var(--accent)">${p.price} Kč</span> <span style="font-size:9px;opacity:0.6">${p.duration}min · ${p.count}×/měs</span></div>`).join('');
 
@@ -13964,6 +14233,7 @@ function switchTab(t) {
   if (t === 'map') setTimeout(() => map.invalidateSize(), 50);
   if (t === 'indikace') setIndikace('', document.querySelector('#indik-chips .filter-chip'));
   if (t === 'dostupnost') {};
+  if (t === 'sezony') initSeasonTab();
   if (t === 'kalkulator') initKalkulator();
 }
 
@@ -14359,6 +14629,329 @@ function renderNearby(lat, lng, locationName) {
     </div>
     <div style="margin-top:10px;font-size:10px;color:var(--text3)">⚠ Vzdálenosti jsou vzdušnou čarou. Skutečná doba jízdy závisí na trase.</div>
   `;
+}
+
+
+
+// ─── Sezónní ceny ─────────────────────────────────────────────────────────────
+const MONTHS = ['Led','Úno','Bře','Dub','Kvě','Čvn','Čvc','Srp','Zář','Říj','Lis','Pro'];
+const MONTH_FULL = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+
+// Sezónní koeficienty (index 0=Leden ... 11=Prosinec)
+const SEASON_COEF = [0.75, 0.78, 0.95, 1.05, 1.08, 1.12, 1.15, 1.15, 1.10, 1.05, 0.82, 0.72];
+const MAIN_SEASON = [2,3,4,5,6,7,8,9]; // březen-říjen (index)
+
+let seasView = 'ubytovani';
+
+function setSeasView(view) {
+  seasView = view;
+  ['ubytovani','klp','procedury'].forEach(v => {
+    const btn = document.getElementById('btn-' + (v==='ubytovani'?'ubyt':v==='klp'?'klp':'proc'));
+    if(btn) {
+      btn.style.background = v===view ? 'var(--accent)' : 'var(--surface2)';
+      btn.style.color = v===view ? '#fff' : 'var(--text2)';
+      btn.style.border = v===view ? 'none' : '1px solid var(--border)';
+    }
+  });
+  renderSeasonChart();
+}
+
+function initSeasonTab() {
+  const sel = document.getElementById('season-hotel');
+  if(!sel || sel.options.length > 1) return;
+
+  // Nejdřív sítě s KLP
+  const sorted = [...HOTELS].sort((a,b) => {
+    if(a.klp && !b.klp) return -1;
+    if(!a.klp && b.klp) return 1;
+    return a.network.localeCompare(b.network) || a.name.localeCompare(b.name);
+  });
+
+  sorted.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h.id;
+    opt.textContent = h.name.replace(/★+/g,'').trim() + ' — ' + h.city;
+    sel.appendChild(opt);
+  });
+
+  // Vybereme první KLP hotel
+  const firstKlp = sorted.find(h => h.klp);
+  if(firstKlp) sel.value = firstKlp.id;
+
+  renderSeasonChart();
+  renderNetworkPrices();
+}
+
+function renderSeasonChart() {
+  const hotelId = document.getElementById('season-hotel').value;
+  const hotel = hotelId ? HOTELS.find(h => h.id == hotelId) : null;
+
+  const canvas = document.getElementById('season-canvas');
+  const ctx = canvas.getContext('2d');
+  // HiDPI Retina fix
+  const dpr = window.devicePixelRatio || 2;
+  const cssW = canvas.parentElement.clientWidth - 40 || 860;
+  const cssH = 300;
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  ctx.scale(dpr, dpr);
+  const W = cssW;
+  const H = cssH;
+  const PAD = { top: 30, right: 20, bottom: 50, left: 70 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Získáme data podle view
+  let datasets = [];
+  let yLabel = '';
+  let yUnit = ' Kč';
+
+  if(seasView === 'ubytovani') {
+    yLabel = 'Kč / noc';
+    if(hotel) {
+      const base = hotel.priceFrom || 2000;
+      datasets = [
+        { label: '1-lůžkový', color: '#2563eb', values: SEASON_COEF.map(c => Math.round(base * c * 1.4 / 100)*100) },
+        { label: '2-lůžkový', color: '#16a34a', values: SEASON_COEF.map(c => Math.round(base * c / 100)*100) },
+        { label: 'Suite', color: '#d97706', values: SEASON_COEF.map(c => Math.round(base * c * 2.2 / 100)*100) },
+      ];
+    } else {
+      // Průměr všech hotelů
+      const avgBase = HOTELS.reduce((s,h)=>s+(h.priceFrom||2000),0)/HOTELS.length;
+      datasets = [
+        { label: 'Průměr — 2-lůžkový', color: '#2563eb', values: SEASON_COEF.map(c => Math.round(avgBase * c / 100)*100) },
+      ];
+    }
+  } else if(seasView === 'klp') {
+    yLabel = 'Kč / den (doplatek)';
+    const klpHotels = hotel ? [hotel] : HOTELS.filter(h=>h.klp).slice(0,5);
+    const colors = ['#2563eb','#16a34a','#d97706','#dc2626','#9333ea'];
+    datasets = klpHotels.map((h, i) => {
+      const d1 = (h.klpDoplatky||[]).find(d=>d.typ.includes('1-lůžkový')&&!d.typ.includes('vedlejší')&&d.cena>0);
+      const d2 = (h.klpDoplatky||[]).find(d=>d.typ.includes('1-lůžkový')&&d.typ.includes('vedlejší')&&d.cena>0);
+      const mainPrice = d1 ? d1.cena : (d2 ? d2.cena + 100 : 400);
+      const offPrice = d2 ? d2.cena : Math.round(mainPrice * 0.75);
+      return {
+        label: h.name.replace(/★+/g,'').trim().split(/[s,]/)[0],
+        color: colors[i % colors.length],
+        values: MONTHS.map((_, mi) => MAIN_SEASON.includes(mi) ? mainPrice : offPrice)
+      };
+    });
+  } else { // procedury
+    yLabel = 'Kč / procedura';
+    if(hotel && hotel.procedures.length > 0) {
+      const colors = ['#2563eb','#16a34a','#d97706','#dc2626','#9333ea'];
+      datasets = hotel.procedures.slice(0,4).map((p, i) => ({
+        label: p.name.slice(0,20),
+        color: colors[i],
+        values: MONTHS.map((_,mi) => {
+          // Procedury jsou stabilnější — jen mírné výkyvy
+          const coef = MAIN_SEASON.includes(mi) ? 1.0 : 0.95;
+          return Math.round(p.price * coef);
+        })
+      }));
+    } else {
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text3').trim() || '#9ca3af';
+      ctx.font = '14px Geist, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Vyberte hotel pro zobrazení procedur', W/2, H/2);
+      return;
+    }
+  }
+
+  // Výpočet rozsahu
+  const allVals = datasets.flatMap(d=>d.values);
+  const minVal = Math.max(0, Math.min(...allVals) * 0.85);
+  const maxVal = Math.max(...allVals) * 1.1;
+
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+  const barW = chartW / 12;
+
+  // Styl
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#94a3b8' : '#6b7280';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const bgColor = isDark ? '#161b22' : '#ffffff';
+
+  // Pozadí
+  ctx.fillStyle = 'transparent';
+  ctx.fillRect(0, 0, W, H);
+
+  // Zvýrazníme hlavní sezónu
+  ctx.fillStyle = isDark ? 'rgba(37,99,235,0.06)' : 'rgba(37,99,235,0.04)';
+  const mainStart = PAD.left + MAIN_SEASON[0] * barW;
+  const mainEnd = PAD.left + (MAIN_SEASON[MAIN_SEASON.length-1]+1) * barW;
+  ctx.fillRect(mainStart, PAD.top, mainEnd-mainStart, chartH);
+
+  // Mřížka
+  const steps = 5;
+  for(let i=0; i<=steps; i++) {
+    const y = PAD.top + chartH - (i/steps)*chartH;
+    const val = Math.round(minVal + (i/steps)*(maxVal-minVal));
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W-PAD.right, y); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.font = '11px Geist, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toLocaleString(), PAD.left-6, y+4);
+  }
+
+  // Osy
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top+chartH);
+  ctx.lineTo(W-PAD.right, PAD.top+chartH);
+  ctx.stroke();
+
+  // Label y-osy
+  ctx.save();
+  ctx.translate(14, PAD.top + chartH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = textColor;
+  ctx.font = '10px Geist, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(yLabel, 0, 0);
+  ctx.restore();
+
+  // Měsíce na ose X
+  MONTHS.forEach((m, i) => {
+    const x = PAD.left + i*barW + barW/2;
+    ctx.fillStyle = textColor;
+    ctx.font = MAIN_SEASON.includes(i) ? 'bold 11px Geist, sans-serif' : '11px Geist, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(m, x, H-PAD.bottom+18);
+  });
+
+  // Label "Hlavní sezona"
+  ctx.fillStyle = isDark ? 'rgba(37,99,235,0.6)' : 'rgba(37,99,235,0.5)';
+  ctx.font = '10px Geist, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('◀ hlavní sezona ▶', (mainStart+mainEnd)/2, PAD.top-8);
+
+  // Čáry pro každý dataset
+  datasets.forEach(ds => {
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+
+    ds.values.forEach((val, i) => {
+      const x = PAD.left + i*barW + barW/2;
+      const y = PAD.top + chartH - ((val-minVal)/(maxVal-minVal))*chartH;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // Body
+    ds.values.forEach((val, i) => {
+      const x = PAD.left + i*barW + barW/2;
+      const y = PAD.top + chartH - ((val-minVal)/(maxVal-minVal))*chartH;
+      ctx.fillStyle = ds.color;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = isDark ? '#0d1117' : '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI*2);
+      ctx.fill();
+    });
+  });
+
+  // Legenda
+  let lx = PAD.left;
+  datasets.forEach(ds => {
+    ctx.fillStyle = ds.color;
+    ctx.fillRect(lx, H-16, 20, 3);
+    ctx.fillStyle = textColor;
+    ctx.font = '10px Geist, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(ds.label, lx+24, H-10);
+    lx += ctx.measureText(ds.label).width + 40;
+  });
+
+  // Tabulka
+  renderSeasonTable(datasets, hotel);
+}
+
+function renderSeasonTable(datasets, hotel) {
+  const wrap = document.getElementById('season-table');
+  if(!wrap) return;
+
+  const headers = ['Měsíc', ...datasets.map(d=>d.label)];
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  wrap.innerHTML = `
+    <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Přehled po měsících</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr>
+          ${headers.map(h=>`<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border2);color:var(--text3);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">${h}</th>`).join('')}
+          <th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border2);color:var(--text3);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">Sezona</th>
+        </tr>
+        ${MONTH_FULL.map((m,mi) => {
+          const isMain = MAIN_SEASON.includes(mi);
+          return `<tr style="background:${isMain ? (isDark?'rgba(37,99,235,0.05)':'rgba(37,99,235,0.03)') : 'transparent'}">
+            <td style="padding:5px 8px;border-bottom:1px solid var(--border2);font-weight:${isMain?'600':'400'};color:var(--text)">${m}</td>
+            ${datasets.map(d=>`<td style="padding:5px 8px;border-bottom:1px solid var(--border2);color:${isMain?'var(--accent)':'var(--text2)'};font-weight:${isMain?'600':'400'}">${d.values[mi].toLocaleString()} Kč</td>`).join('')}
+            <td style="padding:5px 8px;border-bottom:1px solid var(--border2)"><span style="font-size:9px;padding:1px 7px;border-radius:3px;background:${isMain?'rgba(37,99,235,0.1)':'rgba(0,0,0,0.05)'};color:${isMain?'var(--accent)':'var(--text3)'}">${isMain?'Hlavní':'Vedlejší'}</span></td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>
+  `;
+}
+
+function renderNetworkPrices() {
+  const wrap = document.getElementById('network-prices');
+  if(!wrap) return;
+
+  const byNet = {};
+  HOTELS.forEach(h => {
+    if(!byNet[h.network]) byNet[h.network] = [];
+    byNet[h.network].push(h);
+  });
+
+  const netCards = Object.entries(byNet)
+    .filter(([,hs]) => hs.length > 0)
+    .sort((a,b) => {
+      const avgA = a[1].reduce((s,h)=>s+(h.priceFrom||0),0)/a[1].length;
+      const avgB = b[1].reduce((s,h)=>s+(h.priceFrom||0),0)/b[1].length;
+      return avgB - avgA;
+    })
+    .map(([net, hs]) => {
+      const avgFrom = Math.round(hs.reduce((s,h)=>s+(h.priceFrom||0),0)/hs.length);
+      const avgMid  = Math.round(hs.reduce((s,h)=>s+(h.priceMid||0),0)/hs.length);
+      const klpCount = hs.filter(h=>h.klp).length;
+      const mainAvg = Math.round(avgFrom * 1.1);
+      const offAvg  = Math.round(avgFrom * 0.76);
+
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;box-shadow:var(--shadow)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${net}</div>
+          <div style="font-size:9px;color:var(--text3)">${hs.length} hotel${hs.length>4?'ů':hs.length>1?'y':''}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:var(--r3)">
+            <div style="font-family:'Instrument Serif',serif;font-size:16px;color:var(--accent)">${mainAvg.toLocaleString()}</div>
+            <div style="font-size:9px;color:var(--text3)">Hlavní sez. Kč</div>
+          </div>
+          <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:var(--r3)">
+            <div style="font-family:'Instrument Serif',serif;font-size:16px;color:var(--text2)">${offAvg.toLocaleString()}</div>
+            <div style="font-size:9px;color:var(--text3)">Vedlejší sez. Kč</div>
+          </div>
+        </div>
+        ${klpCount > 0 ? `<div style="font-size:10px;color:var(--green)">✓ ${klpCount} hotel${klpCount>4?'ů':klpCount>1?'y':''} s KLP</div>` : ''}
+      </div>`;
+    }).join('');
+
+  wrap.innerHTML = netCards;
 }
 
 </script>
