@@ -488,6 +488,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
   <button class="tab-btn active" onclick="switchTab('map')">🗺 Mapa</button>
   <button class="tab-btn" onclick="switchTab('compare')">⚖ Porovnání</button>
   <button class="tab-btn" onclick="switchTab('scrape')">🔌 Datové Zdroje</button>
+  <button class="tab-btn" onclick="switchTab('dostupnost')">📍 Dostupnost</button>
   <button class="tab-btn" onclick="switchTab('indikace')">🏥 Indikace</button>
   <button class="tab-btn" onclick="switchTab('kalkulator')">🧮 Kalkulačka KLP</button>
 </div>
@@ -514,6 +515,16 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;ba
         <div class="filter-chip" onclick="setFilter('Lázně Luhačovice',this)">Lázně LH</div>
         <div class="filter-chip" onclick="setFilter('LLP Poděbrady',this)">Poděbrady</div>
         <div class="filter-chip" onclick="setFilter('Spa Resort',this)">Spa Resort</div>
+      </div>
+      <div class="filter-row" style="border-bottom:1px solid var(--border2);padding:8px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="filter-label">KLP doplatek max.</span>
+        <input type="range" id="klp-slider" min="0" max="700" step="50" value="700"
+          oninput="setKLPFilter(this.value)"
+          style="flex:1;min-width:120px;accent-color:var(--accent)">
+        <span id="klp-slider-val" style="font-size:11px;font-weight:600;color:var(--accent);min-width:80px">Vše</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);cursor:pointer;white-space:nowrap">
+          <input type="checkbox" id="klp-only" onchange="filterHotels()"> Jen KLP
+        </label>
       </div>
       <div class="filter-row" id="proc-filter-row" style="border-bottom:1px solid var(--border2);padding:8px 10px;display:flex;gap:4px;flex-wrap:wrap;align-items:center">
         <span class="filter-label">Procedura</span>
@@ -681,6 +692,30 @@ app.listen(4000, () => console.log('Proxy běží na :4000'));
     </div>
   </div>
 
+
+  <!-- DOSTUPNOST TAB -->
+  <div id="tab-dostupnost" class="tab-content">
+    <div style="padding:20px;overflow-y:auto;flex:1">
+      <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px">Dostupnost z vašeho bydliště</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:18px">Zadejte město nebo PSČ a zobrazíme nejbližší KLP hotely s odhadovanou vzdáleností</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <input type="text" id="location-input" placeholder="Zadejte město nebo PSČ (např. Praha, 60200, Brno...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-family:'Geist',sans-serif;font-size:12px;color:var(--text);outline:none"
+          onkeydown="if(event.key==='Enter')findNearby()">
+        <button onclick="findNearby()"
+          style="background:var(--accent);border:none;border-radius:var(--r2);padding:10px 20px;color:#fff;font-family:'Geist',sans-serif;font-size:12px;font-weight:600;cursor:pointer">
+          Hledat
+        </button>
+        <button onclick="useMyLocation()"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 16px;color:var(--text2);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer">
+          📍 Moje poloha
+        </button>
+      </div>
+
+      <div id="nearby-result"></div>
+    </div>
+  </div>
 
   <!-- INDIKACE TAB -->
   <div id="tab-indikace" class="tab-content">
@@ -13511,6 +13546,14 @@ const CITIES = [
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let activeFilter = 'all';
+let klpMaxDoplatek = 700;
+
+function setKLPFilter(val) {
+  klpMaxDoplatek = parseInt(val);
+  const label = document.getElementById('klp-slider-val');
+  label.textContent = val >= 700 ? 'Vše' : val + ' Kč/den';
+  filterHotels();
+}
 let activeProcFilter = '';
 let selectedHotel = null;
 let map, markers = {};
@@ -13656,12 +13699,20 @@ function filterHotels() {
   const filtered = HOTELS.filter(h => {
     const matchFilter = activeFilter === 'all' || h.network === activeFilter;
     const matchSearch = !q || h.name.toLowerCase().includes(q) || h.city.toLowerCase().includes(q) || h.city.toLowerCase().includes(q);
+    const klpOnly = document.getElementById('klp-only')?.checked;
+    const matchKLP = klpOnly ? h.klp === true : true;
+    const matchKLPPrice = klpMaxDoplatek >= 700 ? true : (() => {
+      if(!h.klp) return !klpOnly;
+      const d = (h.klpDoplatky||[]).find(d => d.typ.includes('1-lůžkový') && d.cena > 0);
+      const surcharge = d ? d.cena : 0;
+      return surcharge <= klpMaxDoplatek;
+    })();
     const matchProc = !activeProcFilter
       ? true
       : activeProcFilter === 'KLP'
         ? h.klp === true
         : (h.procedures||[]).some(p => p.name.toLowerCase().includes(activeProcFilter.toLowerCase()));
-    return matchFilter && matchSearch && matchProc;
+    return matchFilter && matchSearch && matchProc && matchKLP && matchKLPPrice;
   });
   renderHotelList(filtered);
 }
@@ -13689,6 +13740,10 @@ function openDetail(id) {
   const procs = h.procedures.map(p => `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:0"><b style="display:block;font-size:11px;margin-bottom:4px">${p.name}</b><span style="font-size:15px;color:var(--accent)">${p.price} Kč</span> <span style="font-size:9px;opacity:0.6">${p.duration}min · ${p.count}×/měs</span></div>`).join('');
 
   const specs = h.specializations.map(s => `<span style="background:var(--teal-dark);color:var(--gold-light);padding:2px 8px;border-radius:3px;font-size:9px;letter-spacing:.06em">${s}</span>`).join(' ');
+
+  const hotelWeb = h.web ? 'https://' + h.web.replace(/^https?:\/\//,'') : '';
+  const emailSubject = encodeURIComponent('Dotaz na KLP pobyt — ' + h.name);
+  const emailBody = encodeURIComponent('Dobrý den,\n\nMám zájem o komplexní lázeňský pobyt.\n\nHotel: ' + h.name + '\nMěsto: ' + h.city + '\n\nProsím o informace o dostupných termínech a cenách.\n\nS pozdravem');
 
   document.getElementById('dp-body').innerHTML = `
     <div class="detail-section">
@@ -13719,6 +13774,28 @@ function openDetail(id) {
       <div style="display:flex;justify-content:space-between;font-size:11px">
         <span>⭐ <b>${h.rating}</b> / 5.0 (Booking)</span>
         <a href="https://${h.web}" target="_blank" style="color:var(--teal);text-decoration:none">🌐 ${h.web}</a>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Rezervace & kontakt</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${h.phone ? `<a href="tel:${h.phone}" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);text-decoration:none;color:var(--text);font-size:11px;transition:var(--trans)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:16px">📞</span>
+          <div><div style="font-weight:500">Zavolat přijímací kancelář</div><div style="font-size:10px;color:var(--accent)">${h.phone}</div></div>
+        </a>` : ''}
+        ${hotelWeb ? `<a href="${hotelWeb}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r3);text-decoration:none;color:var(--text);font-size:11px;transition:var(--trans)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:16px">🌐</span>
+          <div><div style="font-weight:500">Webové stránky hotelu</div><div style="font-size:10px;color:var(--accent)">${h.web}</div></div>
+        </a>` : ''}
+        <a href="mailto:info@${h.web || 'hotel.cz'}?subject=${emailSubject}&body=${emailBody}"
+          style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:var(--r3);text-decoration:none;color:var(--text);font-size:11px;transition:var(--trans)"
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(37,99,235,0.2)'">
+          <span style="font-size:16px">✉️</span>
+          <div><div style="font-weight:500">Poslat dotaz emailem</div><div style="font-size:10px;color:var(--text3)">Předvyplněný email s dotazem na KLP</div></div>
+        </a>
+        ${h.klp ? `<div style="padding:9px 12px;background:rgba(22,163,74,0.07);border:1px solid rgba(22,163,74,0.2);border-radius:var(--r3);font-size:10px;color:var(--text2)">
+          💡 Při kontaktu si připravte: <b>jméno, datum narození, indikaci (číslo diagnózy), číslo ZP, požadovaný termín</b>
+        </div>` : ''}
       </div>
     </div>
     <div class="ai-section">
@@ -13886,6 +13963,7 @@ function switchTab(t) {
   document.getElementById('tab-' + t).classList.add('active');
   if (t === 'map') setTimeout(() => map.invalidateSize(), 50);
   if (t === 'indikace') setIndikace('', document.querySelector('#indik-chips .filter-chip'));
+  if (t === 'dostupnost') {};
   if (t === 'kalkulator') initKalkulator();
 }
 
@@ -14148,6 +14226,139 @@ function initKalkulator() {
     sel.appendChild(opt);
   });
   renderKLPRanking(21, 'single', 'main');
+}
+
+
+
+// ─── Dostupnost ───────────────────────────────────────────────────────────────
+const CITY_COORDS_DIST = {
+  'Praha': [50.0755, 14.4378], 'Brno': [49.1951, 16.6068],
+  'Ostrava': [49.8209, 18.2625], 'Plzeň': [49.7384, 13.3736],
+  'Liberec': [50.7663, 15.0543], 'Olomouc': [49.5938, 17.2509],
+  'Zlín': [49.2236, 17.6636], 'Hradec Králové': [50.2092, 15.8328],
+  'České Budějovice': [48.9745, 14.4742], 'Pardubice': [50.0343, 15.7812],
+  'Havířov': [49.7799, 18.4324], 'Kladno': [50.1479, 14.1044],
+  'Most': [50.5034, 13.6365], 'Opava': [49.9380, 17.9034],
+  'Frýdek-Místek': [49.6822, 18.3516], 'Jihlava': [49.3961, 15.5911],
+  'Teplice': [50.6404, 13.8247], 'Karviná': [49.8500, 18.5333],
+  'Děčín': [50.7737, 14.2148], 'Chomutov': [50.4608, 13.4082],
+};
+
+function distanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function useMyLocation() {
+  if(!navigator.geolocation) {
+    alert('Geolokace není podporována');
+    return;
+  }
+  document.getElementById('nearby-result').innerHTML = '<div style="color:var(--text3);font-size:11px">📍 Zjišťuji vaši polohu...</div>';
+  navigator.geolocation.getCurrentPosition(pos => {
+    renderNearby(pos.coords.latitude, pos.coords.longitude, 'Vaše poloha');
+  }, () => {
+    document.getElementById('nearby-result').innerHTML = '<div style="color:var(--red);font-size:11px">Polohu nelze zjistit. Zadejte město ručně.</div>';
+  });
+}
+
+async function findNearby() {
+  const input = document.getElementById('location-input').value.trim();
+  if(!input) return;
+
+  document.getElementById('nearby-result').innerHTML = '<div style="color:var(--text3);font-size:11px">🔍 Hledám...</div>';
+
+  // Zkusíme vlastní tabulku
+  const known = Object.entries(CITY_COORDS_DIST).find(([name]) =>
+    name.toLowerCase().includes(input.toLowerCase()) || input.toLowerCase().includes(name.toLowerCase())
+  );
+
+  if(known) {
+    renderNearby(known[1][0], known[1][1], known[0]);
+    return;
+  }
+
+  // Nominatim geocoding
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(input+', Czech Republic')}&format=json&limit=1`, {
+      headers: { 'Accept-Language': 'cs' }
+    });
+    const data = await res.json();
+    if(data && data[0]) {
+      renderNearby(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name.split(',')[0]);
+    } else {
+      document.getElementById('nearby-result').innerHTML = '<div style="color:var(--red);font-size:11px">Místo nenalezeno. Zkuste jiný název.</div>';
+    }
+  } catch(e) {
+    document.getElementById('nearby-result').innerHTML = '<div style="color:var(--red);font-size:11px">Chyba připojení. Zkuste znovu.</div>';
+  }
+}
+
+function renderNearby(lat, lng, locationName) {
+  const withDist = HOTELS
+    .filter(h => h.lat > 48 && h.lat < 51.5 && h.lng > 12 && h.lng < 19)
+    .map(h => ({
+      hotel: h,
+      km: Math.round(distanceKm(lat, lng, h.lat, h.lng)),
+      driveMin: Math.round(distanceKm(lat, lng, h.lat, h.lng) * 0.85) // odhad 70 km/h průměr
+    }))
+    .sort((a,b) => a.km - b.km);
+
+  const klp = withDist.filter(d => d.hotel.klp === true);
+  const all = withDist;
+
+  document.getElementById('nearby-result').innerHTML = `
+    <div style="margin-bottom:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);font-size:11px;color:var(--text2)">
+      📍 Vzdálenosti od: <b style="color:var(--text)">${locationName}</b>
+    </div>
+
+    <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      Nejbližší KLP hotely <span style="flex:1;height:1px;background:var(--border2)"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+      ${klp.slice(0,10).map(({hotel:h, km, driveMin}) => `
+        <div onclick="switchTab('map');setTimeout(()=>openDetail(${h.id}),100)"
+          style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:var(--trans)"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateX(3px)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+          <div style="text-align:center;min-width:50px;flex-shrink:0">
+            <div style="font-family:'Instrument Serif',serif;font-size:20px;color:var(--accent)">${km}</div>
+            <div style="font-size:9px;color:var(--text3)">km</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.name.replace(/★+/g,'').trim()}</div>
+            <div style="font-size:10px;color:var(--text3)">${h.city} · ${h.network}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <span style="background:var(--green);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px">KLP</span>
+            <div style="font-size:9px;color:var(--text3);margin-top:2px">~${driveMin} min autem</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      Všechny nejbližší hotely <span style="flex:1;height:1px;background:var(--border2)"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">
+      ${all.slice(0,20).map(({hotel:h, km, driveMin}) => `
+        <div onclick="switchTab('map');setTimeout(()=>openDetail(${h.id}),100)"
+          style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:var(--trans)"
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-family:'Instrument Serif',serif;font-size:16px;color:var(--accent)">${km} km</span>
+            ${h.klp?'<span style="background:var(--green);color:#fff;font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px">KLP</span>':''}
+          </div>
+          <div style="font-size:11px;font-weight:500;color:var(--text);line-height:1.2;margin-bottom:2px">${h.name.replace(/★+/g,'').trim().slice(0,35)}</div>
+          <div style="font-size:10px;color:var(--text3)">${h.city} · ~${driveMin} min</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--text3)">⚠ Vzdálenosti jsou vzdušnou čarou. Skutečná doba jízdy závisí na trase.</div>
+  `;
 }
 
 </script>
