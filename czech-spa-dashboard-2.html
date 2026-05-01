@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lázeňský Průzkumník ČR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --parchment: #ede5d4;
+    --gold: #b8942a;
+    --gold-light: #d4b04a;
+    --teal: #2a6b6e;
+    --teal-dark: #1a4547;
+    --teal-light: #3a8a8e;
+    --rust: #8b3a2a;
+    --text: #2a1f15;
+    --text-muted: #6b5a45;
+    --border: rgba(184,148,42,0.25);
+    --shadow: 0 4px 30px rgba(42,31,21,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--teal-dark);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .header-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .header-title h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--cream);
+    letter-spacing: 0.05em;
+  }
+
+  .header-title span {
+    color: var(--gold-light);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  .stat-pill {
+    text-align: center;
+    color: var(--cream);
+    opacity: 0.8;
+  }
+
+  .stat-pill .val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gold-light);
+    display: block;
+  }
+
+  .stat-pill .lbl {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  /* TABS */
+  .tabs {
+    background: var(--teal-dark);
+    display: flex;
+    gap: 2px;
+    padding: 0 24px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    padding: 8px 18px;
+    background: none;
+    border: none;
+    color: rgba(245,240,232,0.5);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover { color: var(--cream); }
+  .tab-btn.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--parchment);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-search {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+
+  .sidebar-search input {
+    flex: 1;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    outline: none;
+  }
+
+  .sidebar-search input:focus { border-color: var(--teal); }
+
+  .filter-row {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--cream);
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .filter-chip.active {
+    background: var(--teal);
+    color: var(--cream);
+    border-color: var(--teal);
+  }
+
+  .hotel-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .hotel-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .hotel-card:hover, .hotel-card.selected {
+    border-color: var(--teal);
+    box-shadow: 0 2px 12px rgba(42,107,110,0.15);
+  }
+
+  .hotel-card.selected { background: #edf5f5; }
+
+  .hotel-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+
+  .hotel-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--teal-dark);
+    line-height: 1.2;
+  }
+
+  .hotel-city {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .hotel-network {
+    font-size: 9px;
+    background: var(--teal-dark);
+    color: var(--gold-light);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 6px;
+    height: fit-content;
+  }
+
+  .hotel-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .meta-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .dot-beds { background: var(--teal); }
+  .dot-proc { background: var(--gold); }
+  .dot-price { background: var(--rust); }
+
+  .price-tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--rust);
+    font-weight: 600;
+  }
+
+  /* MAP */
+  #map-container {
+    flex: 1;
+    position: relative;
+  }
+
+  #map { width: 100%; height: 100%; }
+
+  /* MAP POPUP */
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    background: var(--cream);
+  }
+
+  .leaflet-popup-tip { background: var(--cream); }
+
+  .popup-inner { padding: 4px; min-width: 220px; }
+  .popup-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--teal-dark);
+    margin-bottom: 2px;
+  }
+  .popup-city { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.08em; }
+  .popup-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .popup-row .k { color: var(--text-muted); }
+  .popup-row .v { font-weight: 500; color: var(--teal-dark); }
+  .popup-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 7px;
+    background: var(--teal-dark);
+    color: var(--cream);
+    border: none;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s;
+  }
+  .popup-btn:hover { background: var(--teal); }
+
+  /* DETAIL PANEL */
+  #detail-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 320px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    display: none;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+
+  #detail-panel.open { display: block; }
+
+  .detail-header {
+    background: var(--teal-dark);
+    padding: 14px 16px;
+    border-radius: 7px 7px 0 0;
+    position: sticky;
+    top: 0;
+  }
+
+  .detail-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--cream);
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+  .detail-close:hover { opacity: 1; }
+
+  .detail-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--cream);
+    margin-bottom: 2px;
+  }
+  .detail-city { font-size: 10px; color: var(--gold-light); letter-spacing: 0.1em; }
+
+  .detail-body { padding: 14px 16px; }
+
+  .detail-section { margin-bottom: 14px; }
+  .detail-section-title {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+  }
+
+  .proc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .proc-item {
+    background: var(--parchment);
+    border-radius: 4px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+  }
+  .proc-name { font-size: 10px; color: var(--text); margin-bottom: 2px; }
+  .proc-price { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--rust); }
+  .proc-count { font-size: 9px; color: var(--text-muted); }
+
+  .price-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; text-align: center; }
+  .price-box {
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 6px;
+  }
+  .price-box .pb-val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--rust);
+    font-weight: 600;
+    display: block;
+  }
+  .price-box .pb-lbl { font-size: 9px; color: var(--text-muted); letter-spacing: 0.08em; }
+
+  /* AI SECTION */
+  .ai-section {
+    background: #0f2e30;
+    margin: 0 -16px -14px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .ai-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--gold-light);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .ai-input-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .ai-input {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(184,148,42,0.3);
+    border-radius: 4px;
+    padding: 7px 10px;
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    outline: none;
+  }
+  .ai-input:focus { border-color: var(--gold-light); }
+  .ai-input::placeholder { color: rgba(245,240,232,0.3); }
+
+  .ai-btn {
+    background: var(--gold);
+    border: none;
+    border-radius: 4px;
+    padding: 7px 12px;
+    color: var(--teal-dark);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .ai-btn:hover { background: var(--gold-light); }
+  .ai-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .ai-response {
+    font-size: 11px;
+    color: rgba(245,240,232,0.85);
+    line-height: 1.6;
+    min-height: 40px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+  }
+
+  .ai-response.loading { color: var(--gold-light); font-family: 'DM Mono', monospace; font-size: 10px; }
+
+  /* SCRAPING PANEL */
+  #scrape-panel {
+    padding: 16px;
+  }
+
+  .scrape-note {
+    background: #fff8e8;
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 14px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .scrape-note strong { color: var(--rust); }
+
+  .source-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .source-item {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .source-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .source-name { font-family: 'Cormorant Garamond', serif; font-size: 15px; color: var(--teal-dark); }
+  .source-status {
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.08em;
+  }
+  .status-ok { background: #d4edda; color: #155724; }
+  .status-blocked { background: #f8d7da; color: #721c24; }
+  .status-proxy { background: #fff3cd; color: #856404; }
+  .source-desc { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
+
+  .backend-box {
+    margin-top: 14px;
+    background: #0f2e30;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .backend-box pre {
+    color: #7ee8c0;
+    font-size: 10px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  .backend-title { color: var(--gold-light); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* COMPARE TAB */
+  #compare-panel { padding: 16px; overflow-y: auto; flex: 1; }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .compare-select {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text);
+    width: 100%;
+    outline: none;
+  }
+
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .compare-table th {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal-dark);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .compare-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .compare-table tr:hover td { background: var(--parchment); }
+  .compare-table .row-label { color: var(--text-muted); font-size: 10px; }
+
+  .better { color: #1a6b3a; font-weight: 600; }
+  .worse { color: var(--rust); }
+
+  /* CITY MARKERS */
+  .city-marker-icon {
+    background: var(--teal-dark);
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* LIVE BADGE */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: #c00;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 5px; height: 5px;
+    background: #c00;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* TAB CONTENTS */
+  .tab-content { display: none; flex: 1; overflow: hidden; }
+  .tab-content.active { display: flex; flex-direction: column; }
+
+  #tab-map { flex-direction: row; }
+
+  .stars { color: var(--gold); font-size: 12px; }
+
+  .badge-unesco {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--teal-dark);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>Lázeňský Průzkumník ČR</h1>
+    <span>Czech Spa Intelligence Dashboard</span>
+  </div>
+    <div class="header-stats">
+    <div class="stat-pill"><span class="val">37</span><span class="lbl">lázeňských měst</span></div>
+    <div class="stat-pill"><span class="val">30+</span><span class="lbl">hotelů v databázi</span></div>
+    <div class="stat-pill"><span class="val">10</span><span class="lbl">sítí & skupin</span></div>
+    <div class="stat-pill"><span class="val">327k</span><span class="lbl">pacientů/rok</span></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('map')">🗺 Mapa</button>
+  <button class="tab-btn" onclick="switchTab('compare')">⚖ Porovnání</button>
+  <button class="tab-btn" onclick="switchTab('scrape')">🔌 Datové Zdroje</button>
+</div>
+
+<div class="main">
+
+  <!-- MAP TAB -->
+  <div id="tab-map" class="tab-content active">
+    <div class="sidebar">
+      <div class="sidebar-search">
+        <input type="text" id="search-input" placeholder="Hledat hotel, město..." oninput="filterHotels()">
+      </div>
+      <div class="filter-row" id="filter-row">
+        <span style="font-size:9px;color:var(--text-muted);align-self:center;letter-spacing:.08em">SÍŤ:</span>
+        <div class="filter-chip active" onclick="setFilter('all',this)">Vše</div>
+        <div class="filter-chip" onclick="setFilter('Ensana',this)">Ensana</div>
+        <div class="filter-chip" onclick="setFilter('Royal Spa',this)">Royal Spa</div>
+        <div class="filter-chip" onclick="setFilter('LLJ Jáchymov',this)">LLJ Jáchymov</div>
+        <div class="filter-chip" onclick="setFilter('FL Aquaforum',this)">FL Aquaforum</div>
+        <div class="filter-chip" onclick="setFilter('Imperial KV',this)">Imperial KV</div>
+        <div class="filter-chip" onclick="setFilter('Lázně Třeboň',this)">Třeboň</div>
+        <div class="filter-chip" onclick="setFilter('Klimkovice',this)">Klimkovice</div>
+        <div class="filter-chip" onclick="setFilter('OREA Hotels',this)">OREA</div>
+        <div class="filter-chip" onclick="setFilter('Lázně Luhačovice',this)">Lázně LH</div>
+        <div class="filter-chip" onclick="setFilter('LLP Poděbrady',this)">Poděbrady</div>
+        <div class="filter-chip" onclick="setFilter('Spa Resort',this)">Spa Resort</div>
+      </div>
+      <div class="hotel-list" id="hotel-list"></div>
+    </div>
+
+    <div id="map-container">
+      <div id="map"></div>
+      <div id="detail-panel">
+        <div class="detail-header">
+          <button class="detail-close" onclick="closeDetail()">✕</button>
+          <div class="detail-name" id="dp-name"></div>
+          <div class="detail-city" id="dp-city"></div>
+        </div>
+        <div class="detail-body" id="dp-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE TAB -->
+  <div id="tab-compare" class="tab-content">
+    <div id="compare-panel">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--teal-dark);margin-bottom:4px">Porovnání hotelů</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:14px">Vyberte dva hotely pro detailní srovnání procedur, cen a kapacit</div>
+      <div class="compare-grid">
+        <select class="compare-select" id="compare-a" onchange="renderCompare()"></select>
+        <select class="compare-select" id="compare-b" onchange="renderCompare()"></select>
+      </div>
+      <div id="compare-result"></div>
+    </div>
+  </div>
+
+  <!-- SCRAPE TAB -->
+  <div id="tab-scrape" class="tab-content">
+    <div id="scrape-panel" style="overflow-y:auto">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--teal-dark);margin-bottom:4px">Datové Zdroje & Scraping</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:14px">Architektura sběru živých dat</div>
+
+      <div class="scrape-note">
+        <strong>⚠ Proč ne přímý scraping z prohlížeče?</strong><br>
+        Booking.com, lázeňské weby a většina portálů blokuje přímé volání z JS (CORS policy). Live data vyžadují <strong>backend proxy server</strong>. Níže je architektura a ukázkový kód.
+      </div>
+
+      <div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Dostupné zdroje dat</div>
+
+      <div class="source-list">
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">ÚZIS ČR — Lázeňská péče</span>
+            <span class="source-status status-ok">✓ VOLNĚ</span>
+          </div>
+          <div class="source-desc">PDF publikace + datové soubory ke stažení. Počty pacientů, ošetřovacích dnů, indikace. Úroveň: kraj / obec. URL: uzis.cz/lazenska-pece</div>
+        </div>
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">ČSÚ — Kapacity HUZ</span>
+            <span class="source-status status-ok">✓ API/CSV</span>
+          </div>
+          <div class="source-desc">Otevřená data ČSÚ — počty lůžek, pokojů, zařízení podle obce a kategorie. Filtr „lázeňské ubytování". URL: czso.cz/csu/czso/hromadna-ubytovaci-zarizeni</div>
+        </div>
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">Booking.com</span>
+            <span class="source-status status-blocked">✗ CORS blokován</span>
+          </div>
+          <div class="source-desc">Ceny pokojů live. Vyžaduje backend proxy nebo Booking Affiliate API (registrace zdarma). Dává: ceny, hodnocení, dostupnost.</div>
+        </div>
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">Weby hotelů (scraping)</span>
+            <span class="source-status status-proxy">⚡ BACKEND</span>
+          </div>
+          <div class="source-desc">Procedury, ceníky, balíčky — scraping přes Puppeteer/Playwright na vašem serveru. Cílové weby: ensana.com, laznejachymov.cz, spa-resort.cz atd.</div>
+        </div>
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">Google Places API</span>
+            <span class="source-status status-ok">✓ LIVE (API klíč)</span>
+          </div>
+          <div class="source-desc">Hodnocení, fotky, otevírací doby. Bezplatně prvních 200 USD/měsíc. Lze volat přímo z JS.</div>
+        </div>
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-name">Tourdata.cz</span>
+            <span class="source-status status-ok">✓ VOLNĚ</span>
+          </div>
+          <div class="source-desc">Agregovaná data CzechTourism — hosté, přenocování, průměrné ceny. Export do PDF/Excel.</div>
+        </div>
+      </div>
+
+      <div class="backend-box">
+        <div class="backend-title">📦 Backend proxy — ukázkový kód (Node.js + Express)</div>
+        <pre>
+// server.js — backend proxy pro scraping
+const express = require('express');
+const puppeteer = require('puppeteer');
+const cors = require('cors');
+const app = express();
+app.use(cors({ origin: 'http://localhost:3000' }));
+
+// Endpoint: procedury z webu hotelu
+app.get('/api/procedures/:hotelSlug', async (req, res) => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  const urls = {
+    'grandhotel-pupp': 'https://www.pupp.cz/cs/procedury',
+    'ensana-bristol': 'https://www.ensana.com/bristol/procedury',
+    'lazne-jachymov': 'https://www.laznejachymov.cz/lecba'
+  };
+
+  await page.goto(urls[req.params.hotelSlug]);
+  const data = await page.evaluate(() => {
+    // Extrakce z DOM — přizpůsobit dle webu
+    return Array.from(document.querySelectorAll('.procedure-item'))
+      .map(el => ({
+        name: el.querySelector('.name')?.textContent,
+        price: el.querySelector('.price')?.textContent,
+        duration: el.querySelector('.duration')?.textContent
+      }));
+  });
+  await browser.close();
+  res.json(data);
+});
+
+// Endpoint: live ceny z Booking
+app.get('/api/prices/:hotelId', async (req, res) => {
+  // Booking Affiliate API nebo scraping
+  const response = await fetch(
+    `https://distribution-xml.booking.com/2.6/json/hotels?hotel_ids=${req.params.hotelId}`,
+    { headers: { 'Authorization': 'Basic ' + btoa('USER:PASS') } }
+  );
+  res.json(await response.json());
+});
+
+app.listen(4000, () => console.log('Proxy běží na :4000'));
+        </pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const HOTELS = [
+  // ── KARLOVY VARY ─────────────────────────────────────────────────────────
+  {
+    id: 1, name: "Grandhotel Pupp", city: "Karlovy Vary", network: "independent",
+    lat: 50.2221, lng: 12.8821, stars: 5, beds: 228,
+    priceFrom: 4200, priceMid: 6800, priceHigh: 14000,
+    rating: 4.4, bookingId: "66163",
+    procedures: [
+      { name: "Uhličitá koupel", price: 850, duration: 20, count: 120 },
+      { name: "Masáž celotělová", price: 1200, duration: 60, count: 95 },
+      { name: "Pitná kúra", price: 350, duration: 30, count: 200 },
+      { name: "Elektroléčba", price: 480, duration: 20, count: 80 },
+      { name: "Peloidní zábal", price: 950, duration: 30, count: 65 },
+    ],
+    specializations: ["Pohybový aparát", "Kardiovaskulární", "Trávicí soustava"],
+    unesco: true, web: "pupp.cz"
+  },
+  {
+    id: 2, name: "Spa Resort Sanssouci", city: "Karlovy Vary", network: "Spa Resort",
+    lat: 50.2358, lng: 12.8712, stars: 5, beds: 156,
+    priceFrom: 3800, priceMid: 5500, priceHigh: 9800,
+    rating: 4.6, bookingId: "91234",
+    procedures: [
+      { name: "Radonová koupel", price: 920, duration: 20, count: 85 },
+      { name: "Kneippova kúra", price: 380, duration: 25, count: 110 },
+      { name: "Rehabilitace", price: 1100, duration: 45, count: 70 },
+      { name: "Inhalace", price: 290, duration: 15, count: 150 },
+      { name: "Lymfatická drenáž", price: 1350, duration: 60, count: 55 },
+    ],
+    specializations: ["Onkologie", "Respirační", "Pohybový aparát"],
+    unesco: true, web: "spa-resort.cz"
+  },
+  {
+    id: 3, name: "Ensana Health Spa Bristol", city: "Karlovy Vary", network: "Ensana",
+    lat: 50.2301, lng: 12.8764, stars: 4, beds: 120,
+    priceFrom: 2900, priceMid: 4200, priceHigh: 7500,
+    rating: 4.3, bookingId: "78905",
+    procedures: [
+      { name: "Uhličitá koupel", price: 780, duration: 20, count: 100 },
+      { name: "Masáž sportovní", price: 980, duration: 45, count: 80 },
+      { name: "Aquarelax", price: 1100, duration: 40, count: 60 },
+      { name: "Pitná kúra", price: 250, duration: 20, count: 180 },
+    ],
+    specializations: ["Pohybový aparát", "Relaxace", "Diabetes"],
+    unesco: true, web: "ensana.com"
+  },
+  // ── MARIÁNSKÉ LÁZNĚ ───────────────────────────────────────────────────────
+  {
+    id: 4, name: "Ensana Health Spa Hotel Butterfly", city: "Mariánské Lázně", network: "Ensana",
+    lat: 49.9642, lng: 12.7007, stars: 4, beds: 98,
+    priceFrom: 2600, priceMid: 3900, priceHigh: 6800,
+    rating: 4.5, bookingId: "54321",
+    procedures: [
+      { name: "Rašelinová koupel", price: 890, duration: 25, count: 90 },
+      { name: "Masáž klasická", price: 850, duration: 50, count: 95 },
+      { name: "Uhličitá koupel", price: 750, duration: 20, count: 85 },
+      { name: "Hydromasáž", price: 680, duration: 20, count: 70 },
+      { name: "Pitná kúra", price: 200, duration: 20, count: 220 },
+    ],
+    specializations: ["Gynekologická", "Pohybový aparát", "Relaxace"],
+    unesco: true, web: "ensana.com"
+  },
+  {
+    id: 5, name: "Nové Lázně (Ensana)", city: "Mariánské Lázně", network: "Ensana",
+    lat: 49.9618, lng: 12.7025, stars: 5, beds: 100,
+    priceFrom: 3500, priceMid: 5200, priceHigh: 10000,
+    rating: 4.7, bookingId: "32109",
+    procedures: [
+      { name: "Římské lázně", price: 1800, duration: 90, count: 40 },
+      { name: "Minerální koupel", price: 950, duration: 30, count: 75 },
+      { name: "Masáž orientální", price: 1400, duration: 60, count: 50 },
+      { name: "Čokoládový zábal", price: 1600, duration: 60, count: 35 },
+      { name: "Pitná kúra", price: 200, duration: 20, count: 210 },
+    ],
+    specializations: ["Pohybový aparát", "Kardiologie", "Metabolická onemocnění"],
+    unesco: true, web: "ensana.com"
+  },
+  {
+    id: 11, name: "Hotel ROYAL Mariánské Lázně", city: "Mariánské Lázně", network: "Royal Spa",
+    lat: 49.9668, lng: 12.7048, stars: 4, beds: 115,
+    priceFrom: 2300, priceMid: 3700, priceHigh: 6500,
+    rating: 4.5, bookingId: "RS-ROYAL-ML",
+    note: "Panoramatický výhled, pramen Balbín přímo v hotelu, bazén, wellness. Týdenní léčebné pobyty od €630/os. Parkování 250 Kč/den.",
+    procedures: [
+      { name: "Uhličitá koupel (Balbín)", price: 780, duration: 20, count: 130 },
+      { name: "Pitná kúra", price: 200, duration: 20, count: 250 },
+      { name: "Masáž klasická", price: 850, duration: 50, count: 100 },
+      { name: "Hydrojet", price: 750, duration: 20, count: 90 },
+      { name: "Parafínový zábal rukou", price: 420, duration: 25, count: 80 },
+      { name: "Inhalace", price: 280, duration: 15, count: 150 },
+      { name: "Elektroléčba", price: 390, duration: 20, count: 70 },
+    ],
+    specializations: ["Pohybový aparát", "Kardiovaskulární", "Trávicí soustava", "Respirační"],
+    unesco: true, web: "royalmarienbad.cz"
+  },
+  {
+    id: 12, name: "Hotel PARIS Mariánské Lázně", city: "Mariánské Lázně", network: "Royal Spa",
+    lat: 49.9655, lng: 12.7039, stars: 4, beds: 85,
+    priceFrom: 1950, priceMid: 3100, priceHigh: 5500,
+    rating: 4.3, bookingId: "RS-PARIS-ML",
+    note: "300 m od centra, na okraji lesoparku, panoramatický výhled. Hosté využívají bazén a wellness sousedního Hotelu ROYAL (100 m).",
+    procedures: [
+      { name: "Uhličitá koupel", price: 750, duration: 20, count: 90 },
+      { name: "Pitná kúra", price: 200, duration: 20, count: 200 },
+      { name: "Masáž klasická", price: 820, duration: 50, count: 80 },
+      { name: "Hydromasáž", price: 680, duration: 20, count: 70 },
+      { name: "Aroma masáž", price: 980, duration: 50, count: 60 },
+      { name: "Parafínový zábal", price: 400, duration: 25, count: 55 },
+    ],
+    specializations: ["Pohybový aparát", "Relaxace", "Kardiovaskulární"],
+    unesco: true, web: "royalspa.cz"
+  },
+  // ── LUHAČOVICE (Royal Spa) ────────────────────────────────────────────────
+  {
+    id: 13, name: "MIRAMARE Luhačovice", city: "Luhačovice", network: "Royal Spa",
+    lat: 49.1025, lng: 17.7612, stars: 4, beds: 180,
+    priceFrom: 2090, priceMid: 3300, priceHigh: 5800,
+    rating: 4.5, bookingId: "RS-MIRAMARE-LH",
+    note: "Hlavní lázeňský hotel skupiny v Luhačovicích. 3 propojené budovy, 2 přírodní minerální prameny přímo v hotelu, plné balneologické centrum s 80+ procedurami, bazén, 24h lékař. Pojišťovna i samoplátci.",
+    procedures: [
+      { name: "Jódová uhličitá koupel", price: 720, duration: 20, count: 160 },
+      { name: "Uhličitá koupel suchá", price: 580, duration: 20, count: 120 },
+      { name: "Pitná kúra (Vincentka)", price: 150, duration: 15, count: 300 },
+      { name: "Inhalace", price: 260, duration: 15, count: 180 },
+      { name: "Masáž klasická celotělová", price: 880, duration: 50, count: 110 },
+      { name: "Fyzioterapie individuální", price: 950, duration: 45, count: 90 },
+      { name: "Podvodní masáž", price: 750, duration: 20, count: 85 },
+      { name: "Elektroléčba (Tens, US)", price: 350, duration: 15, count: 140 },
+      { name: "Vodoléčba střídavá", price: 420, duration: 20, count: 100 },
+      { name: "Parafínový zábal", price: 480, duration: 30, count: 75 },
+    ],
+    specializations: ["Respirační", "Trávicí soustava", "Pohybový aparát", "Metabolismus", "Diabetes"],
+    unesco: false, web: "miramare-luhacovice.cz"
+  },
+  {
+    id: 14, name: "VILA ANTOANETA Luhačovice", city: "Luhačovice", network: "Royal Spa",
+    lat: 49.1008, lng: 17.7590, stars: 4, beds: 95,
+    priceFrom: 1950, priceMid: 3000, priceHigh: 5200,
+    rating: 4.4, bookingId: "RS-ANTOANETA-LH",
+    note: "Klidná lázeňská čtvrť, pár kroků od kolonády a parku. Několik propojených vil, výjimečné vodní relax centrum. Vhodné pro léčebné i relaxační pobyty. Součást jsou i Luxury apartments VILA VALAŠKA (arch. Jurkovič).",
+    procedures: [
+      { name: "Jódová uhličitá koupel", price: 700, duration: 20, count: 100 },
+      { name: "Masáž klasická", price: 850, duration: 50, count: 90 },
+      { name: "Pitná kúra", price: 150, duration: 15, count: 220 },
+      { name: "Inhalace", price: 255, duration: 15, count: 130 },
+      { name: "Hydromasáž", price: 680, duration: 20, count: 80 },
+      { name: "Perličková koupel", price: 590, duration: 20, count: 70 },
+      { name: "Fyzioterapie", price: 920, duration: 45, count: 65 },
+      { name: "Parafínový zábal", price: 460, duration: 30, count: 60 },
+    ],
+    specializations: ["Respirační", "Pohybový aparát", "Relaxace", "Trávicí soustava"],
+    unesco: false, web: "royalspa.cz"
+  },
+  {
+    id: 15, name: "VILA VALAŠKA Luhačovice", city: "Luhačovice", network: "Royal Spa",
+    lat: 49.1015, lng: 17.7582, stars: 4, beds: 28,
+    priceFrom: 3420, priceMid: 5500, priceHigh: 9800,
+    rating: 4.7, bookingId: "RS-VALASKA-LH",
+    note: "Luxury Spa & Wellness apartmánový hotel — kulturní památka od arch. Dušana Jurkoviče. Stylové apartmány, prestižní umístění u kolonády. Procedury sdíleny s VILA ANTOANETA.",
+    procedures: [
+      { name: "Jódová uhličitá koupel", price: 720, duration: 20, count: 40 },
+      { name: "Masáž aromaterapeutická", price: 1150, duration: 60, count: 35 },
+      { name: "Hydromasáž soukromá", price: 900, duration: 30, count: 30 },
+      { name: "Zábal bahenní", price: 980, duration: 30, count: 25 },
+      { name: "Pitná kúra", price: 150, duration: 15, count: 80 },
+    ],
+    specializations: ["Luxusní wellness", "Relaxace", "Pohybový aparát"],
+    unesco: false, web: "royalspa.cz"
+  },
+  {
+    id: 16, name: "NIVAMARE Luhačovice", city: "Luhačovice", network: "Royal Spa",
+    lat: 49.0945, lng: 17.7680, stars: 3, beds: 65,
+    priceFrom: 1400, priceMid: 2200, priceHigh: 3800,
+    rating: 4.3, bookingId: "RS-NIVAMARE-LH",
+    note: "Wellness hotel v klidné části Luhačovic nad přehradou, 1,5 km od centra. Krásné výhledy, 2patrové wellness se saunovým světem, venkovní vyhřívaný bazén, dětský koutek. Konference do 60 osob.",
+    procedures: [
+      { name: "Masáž klasická", price: 790, duration: 50, count: 70 },
+      { name: "Aroma masáž", price: 920, duration: 50, count: 50 },
+      { name: "Zábal (bylinný)", price: 680, duration: 30, count: 45 },
+      { name: "Perličková koupel", price: 560, duration: 20, count: 55 },
+      { name: "Sauna finská", price: 350, duration: 60, count: 90 },
+      { name: "Whirlpool soukromý", price: 480, duration: 30, count: 65 },
+    ],
+    specializations: ["Relaxace", "Wellness", "Rodinné pobyty"],
+    unesco: false, web: "royalspa.cz"
+  },
+  // ── OSTROŽSKÁ NOVÁ VES (Royal Spa) ───────────────────────────────────────
+  {
+    id: 17, name: "SULPHUROUS SPA — Sirnaté lázně", city: "Ostrožská Nová Ves", network: "Royal Spa",
+    lat: 48.9983, lng: 17.4458, stars: 3, beds: 145,
+    priceFrom: 1750, priceMid: 2700, priceHigh: 4400,
+    rating: 4.2, bookingId: "RS-SIRNAT-ONV",
+    note: "Sirnaté lázně s více než 100letou tradicí v oblasti Moravského Slovácka, v srdci lesního parku. 2 sirné přírodní prameny, specializace na kožní onemocnění a pohybový aparát. Balneoterapie, 24h lékař. Ubytování v hlavním hotelu nebo ve vilách Vlasta a Šárka (80 m). 7nocí+16 procedur+lékař v jednom balíčku.",
+    procedures: [
+      { name: "Sirná koupel minerální", price: 760, duration: 20, count: 180 },
+      { name: "Peloidní zábal sirný", price: 820, duration: 30, count: 130 },
+      { name: "Masáž klasická", price: 800, duration: 50, count: 110 },
+      { name: "Vodoléčba (Kneipp)", price: 380, duration: 20, count: 90 },
+      { name: "Elektroléčba (US, Tens)", price: 340, duration: 15, count: 150 },
+      { name: "Fyzioterapie", price: 880, duration: 45, count: 100 },
+      { name: "Inhalace", price: 240, duration: 15, count: 120 },
+      { name: "Whirlpool", price: 560, duration: 20, count: 85 },
+      { name: "Světloléčba UV", price: 290, duration: 10, count: 95 },
+    ],
+    specializations: ["Kožní onemocnění", "Pohybový aparát", "Revmatologie", "Gynekologická"],
+    unesco: false, web: "sirnatslazne.cz"
+  },
+  // ── VELKÉ LOSINY (Royal Spa) ──────────────────────────────────────────────
+  {
+    id: 18, name: "THERMAL SPA — Hotel ELIŠKA", city: "Velké Losiny", network: "Royal Spa",
+    lat: 50.0239, lng: 17.0415, stars: 4, beds: 220,
+    priceFrom: 2140, priceMid: 3200, priceHigh: 5500,
+    rating: 4.3, bookingId: "RS-ELISKA-VL",
+    note: "Hlavní hotel termálního resortu Velké Losiny (ELIŠKA I + II). Nově rekonstruovaný krytý termální bazén, balneologické centrum s 50+ procedurami, plná penze, sál pro 250 os. Certifikováno pro pojišťovnami hrazené pobyty. Součástí resortu jsou další sanatorní domy ŠÁRKA a DIANA.",
+    procedures: [
+      { name: "Termální koupel", price: 690, duration: 20, count: 200 },
+      { name: "Podvodní masáž", price: 750, duration: 20, count: 150 },
+      { name: "Masáž klasická", price: 830, duration: 50, count: 130 },
+      { name: "Perličková koupel", price: 560, duration: 20, count: 120 },
+      { name: "Fyzioterapie individuální", price: 900, duration: 45, count: 110 },
+      { name: "Elektroléčba", price: 330, duration: 15, count: 160 },
+      { name: "Magnetoterapie", price: 290, duration: 20, count: 140 },
+      { name: "Zábal parafínový", price: 440, duration: 30, count: 90 },
+      { name: "Inhalace", price: 250, duration: 15, count: 130 },
+    ],
+    specializations: ["Pohybový aparát", "Neurologická", "Kardiovaskulární", "Pooperační rehabilitace"],
+    unesco: false, web: "termaly-losiny.cz"
+  },
+  // ── LÉČEBNÉ LÁZNĚ JÁCHYMOV (Axxos Hotels) ────────────────────────────────
+  {
+    id: 6, name: "Radium Palace", city: "Jáchymov", network: "LLJ Jáchymov",
+    lat: 50.3562, lng: 12.9148, stars: 4, beds: 320,
+    priceFrom: 2100, priceMid: 3300, priceHigh: 5800,
+    rating: 4.3, bookingId: "LLJ-RADIUM",
+    note: "Neoklasicistní palác z roku 1912, jeden z nejlepších evropských lázeňských hotelů své doby. Celková kapacita resortu LLJ: 1 172 lůžek (Radium Palace, Běhounek, Curie, Astoria, Dalibor, Jitřenka, Elektra, Praha, Lužice, Dagmar). 16 000 pacientů/rok. Důl Svornost — 1. radonové lázně na světě (1906).",
+    procedures: [
+      { name: "Radonová koupel (Svornost)", price: 850, duration: 20, count: 220 },
+      { name: "Radonová inhalace", price: 460, duration: 15, count: 280 },
+      { name: "Plynová injekce CO2", price: 520, duration: 15, count: 130 },
+      { name: "Peloidní zábal", price: 790, duration: 30, count: 110 },
+      { name: "Fyzioterapie individuální", price: 960, duration: 45, count: 140 },
+      { name: "Podvodní masáž", price: 880, duration: 20, count: 100 },
+      { name: "Magnetoterapie", price: 300, duration: 20, count: 160 },
+      { name: "Elektroléčba", price: 340, duration: 15, count: 180 },
+      { name: "Solná jeskyně", price: 350, duration: 45, count: 90 },
+      { name: "Kryoterapie", price: 680, duration: 15, count: 60 },
+    ],
+    specializations: ["Pohybový aparát", "Neurologická", "Revmatologie", "Bechtěrevova choroba", "Kožní"],
+    unesco: false, web: "laznejachymov.cz"
+  },
+  {
+    id: 19, name: "Sanatorium Běhounek", city: "Jáchymov", network: "LLJ Jáchymov",
+    lat: 50.3540, lng: 12.9170, stars: 3, beds: 160,
+    priceFrom: 1600, priceMid: 2600, priceHigh: 4200,
+    rating: 4.1, bookingId: "LLJ-BEHOUNEK",
+    note: "Moderní sanatorium (1975), výhled na Krušné hory. Součást radonového resortu LLJ — sdílí radonové prameny dolu Svornost. Vhodné pro KLP hrazené pojišťovnou.",
+    procedures: [
+      { name: "Radonová koupel", price: 820, duration: 20, count: 180 },
+      { name: "Radonová inhalace", price: 440, duration: 15, count: 220 },
+      { name: "Fyzioterapie", price: 920, duration: 45, count: 110 },
+      { name: "Masáž klasická", price: 800, duration: 50, count: 90 },
+      { name: "Elektroléčba", price: 320, duration: 15, count: 150 },
+      { name: "Léčebná tělesná výchova", price: 380, duration: 45, count: 120 },
+    ],
+    specializations: ["Pohybový aparát", "Neurologická", "Pooperační"],
+    unesco: false, web: "laznejachymov.cz"
+  },
+  // ── FRANTIŠKOVY LÁZNĚ AQUAFORUM ───────────────────────────────────────────
+  {
+    id: 7, name: "Spa Resort Pawlik–Aquaforum", city: "Františkovy Lázně", network: "FL Aquaforum",
+    lat: 50.1211, lng: 12.3461, stars: 4, beds: 400,
+    priceFrom: 2200, priceMid: 3500, priceHigh: 6200,
+    rating: 4.6, bookingId: "FL-PAWLIK",
+    note: "Největší hotel v FL (260 pokojů). Aquaforum = největší aquapark českých lázní (4 000 m²), neomezený vstup hostů. Císařské lázně — jediný poskytovatel tradiční slatinné koupele dle orig. receptury. Smlouvy se všemi ZP v ČR. 15 000+ hostů/rok. Součást FL Aquaforum a.s. — 5 hotelů, 1 055 lůžek celkem.",
+    procedures: [
+      { name: "Slatinná koupel (Císařské lázně)", price: 890, duration: 25, count: 180 },
+      { name: "Slatinný zábal", price: 820, duration: 30, count: 130 },
+      { name: "Slatinný vaginální tampon", price: 680, duration: 20, count: 70 },
+      { name: "Uhličitá minerální koupel", price: 760, duration: 20, count: 160 },
+      { name: "Plynová injekce CO2", price: 510, duration: 15, count: 120 },
+      { name: "Masáž klasická celotělová", price: 860, duration: 50, count: 140 },
+      { name: "Fyzioterapie", price: 940, duration: 45, count: 110 },
+      { name: "Aquarelax (Aquaforum)", price: 450, duration: 60, count: 200 },
+      { name: "Solná jeskyně", price: 320, duration: 45, count: 100 },
+      { name: "Elektroléčba / magnetoterapie", price: 330, duration: 15, count: 140 },
+    ],
+    specializations: ["Kardiovaskulární", "Gynekologická", "Pohybový aparát", "Onkologie", "Neurologická"],
+    unesco: true, web: "pawlik-aquaforum.cz"
+  },
+  {
+    id: 20, name: "Spa Hotel Savoy & Medical", city: "Františkovy Lázně", network: "FL Aquaforum",
+    lat: 50.1225, lng: 12.3492, stars: 4, beds: 160,
+    priceFrom: 1900, priceMid: 3000, priceHigh: 5200,
+    rating: 4.4, bookingId: "FL-SAVOY",
+    note: "Součást FL Aquaforum a.s. Přístup do balneocentra Pawlik a Aquaforumu. Léčba zaměřena na pohybový aparát a gynekologii.",
+    procedures: [
+      { name: "Slatinná koupel", price: 860, duration: 25, count: 120 },
+      { name: "Uhličitá koupel", price: 730, duration: 20, count: 110 },
+      { name: "Masáž klasická", price: 840, duration: 50, count: 100 },
+      { name: "Fyzioterapie", price: 910, duration: 45, count: 90 },
+      { name: "Plynová injekce", price: 500, duration: 15, count: 80 },
+    ],
+    specializations: ["Pohybový aparát", "Gynekologická", "Kardiovaskulární"],
+    unesco: true, web: "spa-savoy.cz"
+  },
+  // ── IMPERIAL KARLOVY VARY ─────────────────────────────────────────────────
+  {
+    id: 8, name: "Hotel Imperial Karlovy Vary", city: "Karlovy Vary", network: "Imperial KV",
+    lat: 50.2265, lng: 12.8695, stars: 5, beds: 383,
+    priceFrom: 3500, priceMid: 5800, priceHigh: 12000,
+    rating: 4.5, bookingId: "IMP-KV",
+    note: "Historická dominanta KV od roku 1912. 205 pokojů, 383 lůžek. Největší balneocentrum v KV (1 600 m²), 6 lékařů různých specializací. Termální voda Vřídlo přímo v hotelu. Jako jediný v KV má hyperbarickou komoru. BTL vysokofrekvenční magnetoterapie. Lanovka Imperial do centra (127 m, tunelem).",
+    procedures: [
+      { name: "Uhličitá koupel (Vřídlo)", price: 890, duration: 20, count: 150 },
+      { name: "Pitná kúra (Vřídlo)", price: 200, duration: 20, count: 300 },
+      { name: "Masáž klasická celotělová", price: 1100, duration: 60, count: 120 },
+      { name: "Hot Stone masáž", price: 1350, duration: 60, count: 70 },
+      { name: "Fyzioterapie individuální", price: 980, duration: 45, count: 100 },
+      { name: "Hyperbarická komora (O2)", price: 1200, duration: 60, count: 40 },
+      { name: "BTL magnetoterapie", price: 420, duration: 20, count: 130 },
+      { name: "Elektroléčba", price: 380, duration: 15, count: 160 },
+      { name: "Inhalace", price: 290, duration: 15, count: 180 },
+      { name: "Laser terapie", price: 450, duration: 20, count: 80 },
+      { name: "Parafín", price: 480, duration: 30, count: 90 },
+      { name: "Oxygenoterapie", price: 350, duration: 30, count: 70 },
+    ],
+    specializations: ["Trávicí soustava", "Pohybový aparát", "Metabolismus", "Kardiovaskulární", "Onkologie"],
+    unesco: true, web: "spa-hotel-imperial.cz"
+  },
+  // ── ENSANA / LLML — Mariánské Lázně ──────────────────────────────────────
+  {
+    id: 9, name: "Centrální Lázně (Ensana)", city: "Mariánské Lázně", network: "Ensana",
+    lat: 49.9628, lng: 12.7015, stars: 4, beds: 380,
+    priceFrom: 2800, priceMid: 4100, priceHigh: 7200,
+    rating: 4.5, bookingId: "ENS-CL-ML",
+    note: "Součást komplexu Ensana ML (Nové Lázně★★★★★ + Centrální Lázně★★★★ + Maria Spa Courtyard★★★★ + Hvězda + Pacifik + Svoboda + Butterfly). Celkem 894 pokojů / 1 529 lůžek. Největší historická terapeutická oblast v ML — 24 původních procedurálních místností z 19. stol.",
+    procedures: [
+      { name: "Minerální koupel", price: 820, duration: 20, count: 200 },
+      { name: "Suchá plynová koupel", price: 650, duration: 20, count: 160 },
+      { name: "Plynová injekce (Mariín plyn)", price: 520, duration: 15, count: 130 },
+      { name: "Slatinný zábal", price: 840, duration: 30, count: 110 },
+      { name: "Masáž klasická", price: 870, duration: 50, count: 140 },
+      { name: "Fyzioterapie", price: 950, duration: 45, count: 120 },
+      { name: "Hydrojet", price: 720, duration: 20, count: 100 },
+      { name: "Inhalace (CO2)", price: 280, duration: 15, count: 180 },
+      { name: "Elektroléčba", price: 350, duration: 15, count: 150 },
+      { name: "Magnetoterapie", price: 310, duration: 20, count: 140 },
+    ],
+    specializations: ["Pohybový aparát", "Ledviny a močové cesty", "Respirační", "Gynekologická", "Metabolismus"],
+    unesco: true, web: "ensanahotels.com"
+  },
+  // ── LÉČEBNÉ LÁZNĚ PODĚBRADY ───────────────────────────────────────────────
+  {
+    id: 10, name: "Poděbrady — Lázeňský hotel Zámeček", city: "Poděbrady", network: "LLP Poděbrady",
+    lat: 50.1408, lng: 15.1189, stars: 4, beds: 220,
+    priceFrom: 1800, priceMid: 2900, priceHigh: 4800,
+    rating: 4.1, bookingId: "LLP-ZAMECEK",
+    note: "Kardiologické lázně s tradicí od 1908. Specializace na srdeční a cévní onemocnění, pohybový aparát. Uhličité prameny. Smlouvy se ZP.",
+    procedures: [
+      { name: "Uhličitá koupel", price: 670, duration: 20, count: 200 },
+      { name: "Kardioterapie (EKG monitoring)", price: 950, duration: 40, count: 100 },
+      { name: "Masáž podvodní", price: 780, duration: 20, count: 120 },
+      { name: "Fyzioterapie", price: 880, duration: 45, count: 90 },
+      { name: "Elektroléčba", price: 330, duration: 15, count: 150 },
+      { name: "Pitná kúra", price: 180, duration: 15, count: 300 },
+      { name: "Léčebná tělesná výchova", price: 350, duration: 45, count: 110 },
+    ],
+    specializations: ["Kardiovaskulární", "Pohybový aparát", "Pooperační", "Neurologická"],
+    unesco: false, web: "lazne-podebrady.cz"
+  },
+  // ── SLATINNÉ LÁZNĚ TŘEBOŇ (Aurora) ───────────────────────────────────────
+  {
+    id: 21, name: "Lázně Aurora Třeboň", city: "Třeboň", network: "Lázně Třeboň",
+    lat: 49.0017, lng: 14.7714, stars: 3, beds: 564,
+    priceFrom: 1600, priceMid: 2500, priceHigh: 4200,
+    rating: 4.2, bookingId: "LT-AURORA",
+    note: "Komplex na břehu rybníka Svět, v rozsáhlém lesoparku. Specialita: třeboňská slatina ('třeboňské černé zlato'). Aquacentrum Aqua Viva. V majetku města Třeboň od 1998. Slatinné lázně Třeboň s.r.o. také provozuje Zlatá Hvězda (240 lůžek, ★★★★★) a Bílý Jednorožec (324 lůžek).",
+    procedures: [
+      { name: "Slatinná koupel", price: 780, duration: 25, count: 200 },
+      { name: "Slatinný zábal", price: 720, duration: 30, count: 160 },
+      { name: "Masáž klasická", price: 820, duration: 50, count: 130 },
+      { name: "Fyzioterapie individuální", price: 890, duration: 45, count: 110 },
+      { name: "Podvodní masáž", price: 750, duration: 20, count: 120 },
+      { name: "Vodoléčba", price: 390, duration: 20, count: 100 },
+      { name: "Elektroléčba (US, Tens)", price: 320, duration: 15, count: 140 },
+      { name: "Magnetoterapie", price: 280, duration: 20, count: 130 },
+      { name: "Parafínový zábal", price: 440, duration: 30, count: 90 },
+      { name: "Aqua relax (Aqua Viva)", price: 350, duration: 60, count: 150 },
+    ],
+    specializations: ["Pohybový aparát", "Revmatologie", "Poúrazové stavy", "Pooperační"],
+    unesco: false, web: "laznetrebon.cz"
+  },
+  // ── KLIMKOVICE SANATORIA ──────────────────────────────────────────────────
+  {
+    id: 22, name: "Klimkovice Sanatoria", city: "Klimkovice", network: "Klimkovice",
+    lat: 49.7862, lng: 18.1237, stars: 4, beds: 450,
+    priceFrom: 1900, priceMid: 3000, priceHigh: 5000,
+    rating: 4.4, bookingId: "KLIM-SAN",
+    note: "Jedinečný přírodní zdroj: vysoce koncentrovaná jódo-bromová solanková voda — z nejhlubších vrtů v ČR. Moderní architektura, u Nízkého Jeseníku. Zcela jiný koncept než klasické lázně. Léčí pohybové, neurologické a gynekologické choroby, vhodné pro cévní systém.",
+    procedures: [
+      { name: "Solanková koupel jódo-bromová", price: 820, duration: 20, count: 200 },
+      { name: "Solanková inhalace", price: 420, duration: 20, count: 160 },
+      { name: "Solanková vaginální irigace", price: 680, duration: 20, count: 90 },
+      { name: "Masáž klasická", price: 860, duration: 50, count: 130 },
+      { name: "Fyzioterapie", price: 920, duration: 45, count: 120 },
+      { name: "Elektroléčba", price: 340, duration: 15, count: 160 },
+      { name: "Magnetoterapie", price: 300, duration: 20, count: 150 },
+      { name: "Ultrazvuk", price: 310, duration: 15, count: 140 },
+      { name: "Podvodní masáž", price: 760, duration: 20, count: 100 },
+      { name: "Léčebná tělesná výchova", price: 360, duration: 45, count: 110 },
+    ],
+    specializations: ["Pohybový aparát", "Neurologická", "Gynekologická", "Cévní systém", "Revmatologie"],
+    unesco: false, web: "klimkovice.cz"
+  },
+  // ── OREA HOTELS & RESORTS ────────────────────────────────────────────────
+  {
+    id: 23, name: "OREA Spa Hotel Palace Zvon", city: "Mariánské Lázně", network: "OREA Hotels",
+    lat: 49.9635, lng: 12.7022, stars: 4, beds: 130,
+    priceFrom: 2100, priceMid: 3400, priceHigh: 5800,
+    rating: 4.3, bookingId: "OREA-ZVON",
+    note: "Součást OREA Hotels & Resorts — jeden z největších hotelových řetězců v ČR. V lázních provozuje také OREA Spa Hotel Cristal (Mariánské Lázně). Historická vila u kolonády, 260 m od zpívající fontány.",
+    procedures: [
+      { name: "Minerální koupel", price: 790, duration: 20, count: 100 },
+      { name: "Suchá plynová koupel", price: 630, duration: 20, count: 80 },
+      { name: "Masáž klasická", price: 840, duration: 50, count: 90 },
+      { name: "Fyzioterapie", price: 920, duration: 45, count: 75 },
+      { name: "Hydrojet", price: 700, duration: 20, count: 70 },
+      { name: "Parafínový zábal", price: 430, duration: 30, count: 60 },
+      { name: "Inhalace", price: 270, duration: 15, count: 100 },
+    ],
+    specializations: ["Pohybový aparát", "Respirační", "Relaxace"],
+    unesco: true, web: "orea.cz"
+  },
+  // ── LÁZNĚ LUHAČOVICE (nezávislá a.s.) ────────────────────────────────────
+  {
+    id: 24, name: "Grandhotel Adriria — Lázně Luhačovice", city: "Luhačovice", network: "Lázně Luhačovice",
+    lat: 49.1013, lng: 17.7598, stars: 4, beds: 150,
+    priceFrom: 2400, priceMid: 3700, priceHigh: 6000,
+    rating: 4.4, bookingId: "LL-ADRIRIA",
+    note: "Lázně Luhačovice a.s. provozuje 6 lázeňských domů (Grandhotel Adriria, Jestřabí, Janáček, Zálesí, Anny, Morava) s celkovou kapacitou ~1 000 lůžek. Největší moravské lázně. Léčivé zdroje: Vincentka, Aloiska, Ottovka a další jódové uhličité prameny.",
+    procedures: [
+      { name: "Jódová uhličitá koupel", price: 710, duration: 20, count: 180 },
+      { name: "Uhličitá suchá koupel", price: 570, duration: 20, count: 130 },
+      { name: "Pitná kúra (Vincentka)", price: 140, duration: 15, count: 400 },
+      { name: "Inhalace (aerosol)", price: 260, duration: 20, count: 200 },
+      { name: "Masáž klasická celotělová", price: 870, duration: 50, count: 150 },
+      { name: "Fyzioterapie individuální", price: 930, duration: 45, count: 120 },
+      { name: "Elektroléčba (Tens, US, Laser)", price: 340, duration: 15, count: 170 },
+      { name: "Podvodní masáž", price: 740, duration: 20, count: 110 },
+      { name: "Parafínový zábal", price: 450, duration: 30, count: 80 },
+    ],
+    specializations: ["Respirační", "Trávicí soustava", "Pohybový aparát", "Metabolismus", "Cévní"],
+    unesco: false, web: "lluhacovice.cz"
+  },
+];
+
+const CITIES = [
+  { name: "Karlovy Vary", lat: 50.2301, lng: 12.8719, count: 5, unesco: true },
+  { name: "Mariánské Lázně", lat: 49.9642, lng: 12.7007, count: 6, unesco: true },
+  { name: "Františkovy Lázně", lat: 50.1220, lng: 12.3479, count: 3, unesco: true },
+  { name: "Jáchymov", lat: 50.3550, lng: 12.9163, count: 2, unesco: false },
+  { name: "Luhačovice", lat: 49.1013, lng: 17.7598, count: 6, unesco: false },
+  { name: "Ostrožská Nová Ves", lat: 48.9983, lng: 17.4458, count: 1, unesco: false },
+  { name: "Velké Losiny", lat: 50.0239, lng: 17.0415, count: 1, unesco: false },
+  { name: "Poděbrady", lat: 50.1408, lng: 15.1189, count: 1, unesco: false },
+  { name: "Třeboň", lat: 49.0017, lng: 14.7714, count: 1, unesco: false },
+  { name: "Klimkovice", lat: 49.7862, lng: 18.1237, count: 1, unesco: false },
+  { name: "Teplice", lat: 50.6404, lng: 13.8247, count: 1, unesco: false },
+  { name: "Jeseník", lat: 50.2270, lng: 17.2040, count: 1, unesco: false },
+  { name: "Hodonín", lat: 48.8504, lng: 17.1276, count: 1, unesco: false },
+  { name: "Bělohrad", lat: 50.4235, lng: 15.5851, count: 1, unesco: false },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let activeFilter = 'all';
+let selectedHotel = null;
+let map, markers = {};
+
+// ─── MAP INIT ─────────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { zoomControl: false }).setView([49.8, 15.5], 7);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CartoDB',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+
+  // City markers
+  CITIES.forEach(c => {
+    const icon = L.divIcon({
+      html: `<div style="
+        background:${c.unesco ? '#2a6b6e' : '#6b5a45'};
+        border:2px solid ${c.unesco ? '#b8942a' : '#ccc'};
+        border-radius:50%;width:12px;height:12px;
+      "></div>`,
+      className: '', iconSize: [12, 12], iconAnchor: [6, 6]
+    });
+    L.marker([c.lat, c.lng], { icon })
+      .addTo(map)
+      .bindTooltip(`<b>${c.name}</b>${c.unesco ? ' 🏛 UNESCO' : ''}<br>${c.count} zařízení`,
+        { className: 'city-tooltip' });
+  });
+
+  // Hotel markers
+  HOTELS.forEach(h => {
+    const networkColor = {
+      Ensana: '#2a6b6e',
+      'Royal Spa': '#6b2a5a',
+      'LLJ Jáchymov': '#2a4a6b',
+      'FL Aquaforum': '#3a6b2a',
+      'Imperial KV': '#8b6914',
+      'Lázně Třeboň': '#2a6b4a',
+      'Klimkovice': '#6b4a2a',
+      'OREA Hotels': '#4a2a6b',
+      'Lázně Luhačovice': '#5a6b2a',
+      'LLP Poděbrady': '#6b2a2a',
+      'Spa Resort': '#8b3a14',
+      independent: '#6b5a45'
+    };
+    const icon = L.divIcon({
+      html: `<div style="
+        background:${networkColor[h.network] || '#666'};
+        border:2px solid #b8942a;
+        border-radius:3px;
+        width:10px;height:10px;
+        cursor:pointer;
+        box-shadow:0 1px 4px rgba(0,0,0,0.4);
+      "></div>`,
+      className: '', iconSize: [10, 10], iconAnchor: [5, 5]
+    });
+
+    const m = L.marker([h.lat, h.lng], { icon }).addTo(map);
+    m.bindPopup(`
+      <div class="popup-inner">
+        <div class="popup-name">${h.name}${h.unesco ? '<span class="badge-unesco">UNESCO</span>' : ''}</div>
+        <div class="popup-city">${h.city} · ${'★'.repeat(h.stars)}</div>
+        <div class="popup-row"><span class="k">Lůžka</span><span class="v">${h.beds}</span></div>
+        <div class="popup-row"><span class="k">Procedury</span><span class="v">${h.procedures.length} typů</span></div>
+        <div class="popup-row"><span class="k">Cena od</span><span class="v">${h.priceFrom.toLocaleString()} Kč/noc</span></div>
+        <div class="popup-row"><span class="k">Hodnocení</span><span class="v">⭐ ${h.rating}/5</span></div>
+        <button class="popup-btn" onclick="openDetail(${h.id})">Zobrazit detail →</button>
+      </div>
+    `, { maxWidth: 260 });
+
+    markers[h.id] = m;
+  });
+}
+
+// ─── SIDEBAR LIST ─────────────────────────────────────────────────────────────
+function renderHotelList(data) {
+  const list = document.getElementById('hotel-list');
+  list.innerHTML = '';
+  if (data.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:11px">Žádné výsledky</div>';
+    return;
+  }
+  data.forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'hotel-card' + (selectedHotel?.id === h.id ? ' selected' : '');
+    div.innerHTML = `
+      <div class="hotel-card-header">
+        <div>
+          <div class="hotel-name">${h.name}${h.unesco ? '<span class="badge-unesco">UNESCO</span>' : ''}</div>
+          <div class="hotel-city">${'★'.repeat(h.stars)} · ${h.city}</div>
+        </div>
+        ${h.network !== 'independent' ? `<div class="hotel-network">${h.network}</div>` : ''}
+      </div>
+      <div class="hotel-meta">
+        <div class="meta-item"><div class="meta-dot dot-beds"></div>${h.beds} lůžek</div>
+        <div class="meta-item"><div class="meta-dot dot-proc"></div>${h.procedures.length} procedur</div>
+        <div class="meta-item"><div class="meta-dot dot-price"></div><span class="price-tag">${h.priceFrom.toLocaleString()} Kč</span></div>
+      </div>
+    `;
+    div.onclick = () => openDetail(h.id);
+    list.appendChild(div);
+  });
+}
+
+function filterHotels() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = HOTELS.filter(h => {
+    const matchFilter = activeFilter === 'all' || h.network === activeFilter;
+    const matchSearch = !q || h.name.toLowerCase().includes(q) || h.city.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+  renderHotelList(filtered);
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterHotels();
+}
+
+// ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
+function openDetail(id) {
+  const h = HOTELS.find(x => x.id === id);
+  if (!h) return;
+  selectedHotel = h;
+  filterHotels();
+
+  map.flyTo([h.lat, h.lng], 14, { duration: 1 });
+  markers[id]?.openPopup();
+
+  document.getElementById('dp-name').textContent = h.name;
+  document.getElementById('dp-city').innerHTML = `${'★'.repeat(h.stars)} &nbsp;·&nbsp; ${h.city} &nbsp;·&nbsp; ${h.network !== 'independent' ? h.network : 'Nezávislý'}${h.unesco ? ' &nbsp;<span class="badge-unesco">UNESCO</span>' : ''}`;
+
+  const procs = h.procedures.map(p => `
+    <div class="proc-item">
+      <div class="proc-name">${p.name}</div>
+      <div class="proc-price">${p.price} Kč</div>
+      <div class="proc-count">${p.duration} min · ~${p.count}/měs</div>
+    </div>
+  `).join('');
+
+  const specs = h.specializations.map(s => `<span style="background:var(--teal-dark);color:var(--gold-light);padding:2px 8px;border-radius:3px;font-size:9px;letter-spacing:.06em">${s}</span>`).join(' ');
+
+  document.getElementById('dp-body').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Ceny ubytování / noc</div>
+      <div class="price-grid">
+        <div class="price-box"><span class="pb-val">${h.priceFrom.toLocaleString()}</span><span class="pb-lbl">od Kč</span></div>
+        <div class="price-box"><span class="pb-val">${h.priceMid.toLocaleString()}</span><span class="pb-lbl">průměr Kč</span></div>
+        <div class="price-box"><span class="pb-val">${h.priceHigh.toLocaleString()}</span><span class="pb-lbl">suite Kč</span></div>
+      </div>
+      <div style="font-size:9px;color:var(--text-muted);margin-top:6px">
+        <span class="live-badge"><span class="live-dot"></span>data z databáze · pro live ceny připojte Booking API</span>
+      </div>
+    </div>
+    ${h.note ? `<div class="detail-section">
+      <div class="detail-section-title">O zařízení & síti</div>
+      <div style="font-size:11px;line-height:1.6;color:var(--text-muted)">${h.note}</div>
+    </div>` : ''}
+    <div class="detail-section">
+      <div class="detail-section-title">Léčebné procedury (${h.procedures.length} typů)</div>
+      <div class="proc-grid">${procs}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Specializace</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${specs}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Hodnocení & kontakt</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span>⭐ <b>${h.rating}</b> / 5.0 (Booking)</span>
+        <a href="https://${h.web}" target="_blank" style="color:var(--teal);text-decoration:none">🌐 ${h.web}</a>
+      </div>
+    </div>
+    <div class="ai-section">
+      <div class="ai-label">AI Asistent — Claude</div>
+      <div class="ai-input-row">
+        <input class="ai-input" id="ai-q-${h.id}" placeholder="Zeptejte se na tento hotel..." 
+          onkeydown="if(event.key==='Enter')askAI(${h.id})">
+        <button class="ai-btn" id="ai-btn-${h.id}" onclick="askAI(${h.id})">Ptej se</button>
+      </div>
+      <div class="ai-response" id="ai-r-${h.id}">Zeptejte se na procedury, ceny, specializaci nebo srovnání s jinými hotely...</div>
+    </div>
+  `;
+
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  selectedHotel = null;
+  filterHotels();
+}
+
+// ─── AI ───────────────────────────────────────────────────────────────────────
+async function askAI(hotelId) {
+  const h = HOTELS.find(x => x.id === hotelId);
+  const q = document.getElementById(`ai-q-${hotelId}`).value;
+  if (!q.trim()) return;
+
+  const resp = document.getElementById(`ai-r-${hotelId}`);
+  const btn = document.getElementById(`ai-btn-${hotelId}`);
+  resp.className = 'ai-response loading';
+  resp.textContent = '⏳ Claude přemýšlí...';
+  btn.disabled = true;
+
+  const context = `
+Jsi expert na české lázeňství. Zde jsou data o hotelu:
+Název: ${h.name}
+Město: ${h.city} | Síť: ${h.network} | Hvězdičky: ${h.stars}
+Lůžka: ${h.beds}
+Cena za noc: od ${h.priceFrom} Kč, průměr ${h.priceMid} Kč, suite ${h.priceHigh} Kč
+Hodnocení: ${h.rating}/5
+Procedury: ${h.procedures.map(p => `${p.name} (${p.price} Kč, ${p.duration} min, ~${p.count}/měs)`).join('; ')}
+Specializace: ${h.specializations.join(', ')}
+UNESCO: ${h.unesco ? 'ano' : 'ne'}
+Web: ${h.web}
+Další hotely v databázi: ${HOTELS.filter(x=>x.id!==hotelId).map(x=>x.name+' v '+x.city).join(', ')}
+Odpovídej stručně, fakticky, v češtině. Max 150 slov.
+  `.trim();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: context,
+        messages: [{ role: 'user', content: q }]
+      })
+    });
+    const data = await res.json();
+    resp.className = 'ai-response';
+    resp.textContent = data.content?.[0]?.text || 'Nepodařilo se získat odpověď.';
+  } catch(e) {
+    resp.className = 'ai-response';
+    resp.textContent = '⚠ Chyba připojení k Claude API.';
+  }
+  btn.disabled = false;
+}
+
+// ─── COMPARE ──────────────────────────────────────────────────────────────────
+function initCompare() {
+  ['compare-a', 'compare-b'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    HOTELS.forEach((h, idx) => {
+      const opt = document.createElement('option');
+      opt.value = h.id;
+      opt.textContent = `${h.name} (${h.city})`;
+      sel.appendChild(opt);
+    });
+    sel.selectedIndex = i;
+  });
+  renderCompare();
+}
+
+function renderCompare() {
+  const a = HOTELS.find(h => h.id == document.getElementById('compare-a').value);
+  const b = HOTELS.find(h => h.id == document.getElementById('compare-b').value);
+  if (!a || !b || a.id === b.id) {
+    document.getElementById('compare-result').innerHTML = '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:20px">Vyberte dva různé hotely</div>';
+    return;
+  }
+
+  const rows = [
+    { label: 'Město', va: a.city, vb: b.city, better: null },
+    { label: 'Síť', va: a.network, vb: b.network, better: null },
+    { label: 'Hvězdičky', va: '★'.repeat(a.stars), vb: '★'.repeat(b.stars), better: a.stars > b.stars ? 'a' : a.stars < b.stars ? 'b' : null },
+    { label: 'Lůžka', va: a.beds, vb: b.beds, better: null },
+    { label: 'Počet procedur', va: a.procedures.length, vb: b.procedures.length, better: a.procedures.length > b.procedures.length ? 'a' : 'b' },
+    { label: 'Cena od (Kč/noc)', va: a.priceFrom.toLocaleString(), vb: b.priceFrom.toLocaleString(), better: a.priceFrom < b.priceFrom ? 'a' : 'b' },
+    { label: 'Průměrná cena (Kč/noc)', va: a.priceMid.toLocaleString(), vb: b.priceMid.toLocaleString(), better: a.priceMid < b.priceMid ? 'a' : 'b' },
+    { label: 'Hodnocení', va: a.rating + '/5', vb: b.rating + '/5', better: a.rating > b.rating ? 'a' : 'b' },
+    { label: 'UNESCO', va: a.unesco ? '✓ Ano' : '—', vb: b.unesco ? '✓ Ano' : '—', better: null },
+    { label: 'Nejlevnější procedura', va: Math.min(...a.procedures.map(p=>p.price)) + ' Kč', vb: Math.min(...b.procedures.map(p=>p.price)) + ' Kč', better: Math.min(...a.procedures.map(p=>p.price)) < Math.min(...b.procedures.map(p=>p.price)) ? 'a' : 'b' },
+    { label: 'Nejdražší procedura', va: Math.max(...a.procedures.map(p=>p.price)) + ' Kč', vb: Math.max(...b.procedures.map(p=>p.price)) + ' Kč', better: null },
+  ];
+
+  const tableRows = rows.map(r => `
+    <tr>
+      <td class="row-label">${r.label}</td>
+      <td class="${r.better === 'a' ? 'better' : r.better === 'b' ? 'worse' : ''}">${r.va}</td>
+      <td class="${r.better === 'b' ? 'better' : r.better === 'a' ? 'worse' : ''}">${r.vb}</td>
+    </tr>
+  `).join('');
+
+  // Shared procedures
+  const sharedProcs = a.procedures.filter(pa => b.procedures.some(pb => pb.name === pa.name));
+  const sharedRows = sharedProcs.length > 0 ? sharedProcs.map(pa => {
+    const pb = b.procedures.find(p => p.name === pa.name);
+    return `<tr>
+      <td class="row-label">${pa.name}</td>
+      <td class="${pa.price < pb.price ? 'better' : pa.price > pb.price ? 'worse' : ''}">${pa.price} Kč</td>
+      <td class="${pb.price < pa.price ? 'better' : pb.price > pa.price ? 'worse' : ''}">${pb.price} Kč</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="3" style="color:var(--text-muted);font-size:10px;text-align:center">Žádné společné procedury</td></tr>';
+
+  document.getElementById('compare-result').innerHTML = `
+    <table class="compare-table">
+      <tr>
+        <th style="width:40%">Ukazatel</th>
+        <th style="width:30%">${a.name.split(' ').slice(0,2).join(' ')}</th>
+        <th style="width:30%">${b.name.split(' ').slice(0,2).join(' ')}</th>
+      </tr>
+      ${tableRows}
+    </table>
+    <div style="margin-top:16px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:8px">Srovnání cen společných procedur</div>
+    <table class="compare-table">
+      <tr>
+        <th style="width:40%">Procedura</th>
+        <th>${a.name.split(' ').slice(0,2).join(' ')}</th>
+        <th>${b.name.split(' ').slice(0,2).join(' ')}</th>
+      </tr>
+      ${sharedRows}
+    </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--text-muted)">
+      <span style="color:#1a6b3a">■</span> lepší hodnota &nbsp; <span style="color:var(--rust)">■</span> horší hodnota
+    </div>
+  `;
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', ['map','compare','scrape'][i] === t));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  if (t === 'map') setTimeout(() => map.invalidateSize(), 50);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+initMap();
+renderHotelList(HOTELS);
+initCompare();
+</script>
+</body>
+</html>
