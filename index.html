@@ -14068,13 +14068,21 @@ function openDetail(id) {
       </div>
     </div>
     <div class="ai-section">
-      <div class="ai-label">AI Asistent — Claude</div>
+      <div class="ai-label">Hledat informace o hotelu</div>
       <div class="ai-input-row">
-        <input class="ai-input" id="ai-q-${h.id}" placeholder="Zeptejte se na tento hotel..." 
-          onkeydown="if(event.key==='Enter')askAI(${h.id})">
-        <button class="ai-btn" id="ai-btn-${h.id}" onclick="askAI(${h.id})">Ptej se</button>
+        <input class="ai-input" id="ai-q-${h.id}" placeholder="Napište dotaz (např. recenze, ceny, procedury...)"
+          onkeydown="if(event.key==='Enter')searchHotel(${h.id})">
+        <button class="ai-btn" onclick="searchHotel(${h.id})">Hledat</button>
       </div>
-      <div class="ai-response" id="ai-r-${h.id}">Zeptejte se na procedury, ceny, specializaci nebo srovnání s jinými hotely...</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <button onclick="openSearch('perplexity',${h.id})" style="flex:1;padding:6px 8px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:6px;color:#818cf8;font-size:10px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif">🔍 Perplexity</button>
+        <button onclick="openSearch('chatgpt',${h.id})" style="flex:1;padding:6px 8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:6px;color:#34d399;font-size:10px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif">💬 ChatGPT</button>
+        <button onclick="openSearch('google',${h.id})" style="flex:1;padding:6px 8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);border-radius:6px;color:#60a5fa;font-size:10px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif">🌐 Google</button>
+        <button onclick="openSearch('booking',${h.id})" style="flex:1;padding:6px 8px;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);border-radius:6px;color:#38bdf8;font-size:10px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif">🏨 Booking</button>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-top:6px;line-height:1.4">
+        Kliknutím otevřete dotaz v nové záložce — nebo napište vlastní dotaz a stiskněte Hledat
+      </div>
     </div>
   `;
 
@@ -14087,53 +14095,7 @@ function closeDetail() {
   filterHotels();
 }
 
-// ─── AI ───────────────────────────────────────────────────────────────────────
-async function askAI(hotelId) {
-  const h = HOTELS.find(x => x.id === hotelId);
-  const q = document.getElementById(`ai-q-${hotelId}`).value;
-  if (!q.trim()) return;
-
-  const resp = document.getElementById(`ai-r-${hotelId}`);
-  const btn = document.getElementById(`ai-btn-${hotelId}`);
-  resp.className = 'ai-response loading';
-  resp.textContent = '⏳ Claude přemýšlí...';
-  btn.disabled = true;
-
-  const context = `
-Jsi expert na české lázeňství. Zde jsou data o hotelu:
-Název: ${h.name}
-Město: ${h.city} | Síť: ${h.network} | Hvězdičky: ${h.stars}
-Lůžka: ${h.beds}
-Cena za noc: od ${h.priceFrom} Kč, průměr ${h.priceMid} Kč, suite ${h.priceHigh} Kč
-Hodnocení: ${h.rating}/5
-Procedury: ${h.procedures.map(p => `${p.name} (${p.price} Kč, ${p.duration} min, ~${p.count}/měs)`).join('; ')}
-Specializace: ${h.specializations.join(', ')}
-UNESCO: ${h.unesco ? 'ano' : 'ne'}
-Web: ${h.web}
-Další hotely v databázi: ${HOTELS.filter(x=>x.id!==hotelId).map(x=>x.name+' v '+x.city).join(', ')}
-Odpovídej stručně, fakticky, v češtině. Max 150 slov.
-  `.trim();
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: context,
-        messages: [{ role: 'user', content: q }]
-      })
-    });
-    const data = await res.json();
-    resp.className = 'ai-response';
-    resp.textContent = data.content?.[0]?.text || 'Nepodařilo se získat odpověď.';
-  } catch(e) {
-    resp.className = 'ai-response';
-    resp.textContent = '⚠ Chyba připojení k Claude API.';
-  }
-  btn.disabled = false;
-}
+// AI funkce přesunuta do searchHotel/openSearch
 
 // ─── COMPARE ──────────────────────────────────────────────────────────────────
 function initCompare() {
@@ -14952,6 +14914,35 @@ function renderNetworkPrices() {
     }).join('');
 
   wrap.innerHTML = netCards;
+}
+
+
+function searchHotel(hotelId) {
+  const hotel = HOTELS.find(h => h.id === hotelId);
+  const q = document.getElementById('ai-q-' + hotelId)?.value?.trim();
+  if(!hotel) return;
+  const query = q || hotel.name + ' ' + hotel.city + ' lázně recenze ceny';
+  const url = 'https://www.perplexity.ai/search?q=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+
+function openSearch(engine, hotelId) {
+  const hotel = HOTELS.find(h => h.id === hotelId);
+  if(!hotel) return;
+  const q = document.getElementById('ai-q-' + hotelId)?.value?.trim();
+  const hotelName = hotel.name.replace(/★+/g,'').trim();
+  const defaultQuery = hotelName + ' ' + hotel.city;
+
+  const query = q ? (hotelName + ' ' + q) : defaultQuery;
+
+  const urls = {
+    perplexity: 'https://www.perplexity.ai/search?q=' + encodeURIComponent(query + ' lázně KLP recenze procedury ceny'),
+    chatgpt:    'https://chatgpt.com/?q=' + encodeURIComponent('Řekni mi vše o ' + query + ' - lázeňský hotel v ČR, procedury, KLP, ceny, recenze'),
+    google:     'https://www.google.com/search?q=' + encodeURIComponent(query + ' lázně recenze'),
+    booking:    'https://www.booking.com/search.html?ss=' + encodeURIComponent(hotelName + ' ' + hotel.city),
+  };
+
+  window.open(urls[engine], '_blank');
 }
 
 </script>
